@@ -153,13 +153,15 @@ void projectMSDL::printKeyboardShortcuts()
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  Mouse Scroll      - Change presets");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nAudio:");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+I             - Cycle audio input devices");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  UP/DOWN Arrow     - Adjust beat sensitivity");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+UP/DOWN       - Adjust beat sensitivity");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nDisplay:");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+F             - Toggle fullscreen");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+M             - Change monitor");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+S             - Stretch across monitors");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  A                 - Toggle aspect correction");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  S                 - Toggle slow motion (0.5x speed)");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nTime Control:");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  UP/DOWN Arrow     - Adjust time scale (0.01x - 2.0x, adaptive increments)");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  S                 - Toggle slow motion (0.1x/1.0x)");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nOther:");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  H                 - Show this help");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+Q             - Quit");
@@ -249,7 +251,7 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
             {
                 // s without modifier: slow motion toggle
                 float currentScale = projectm_get_time_scale(_projectM);
-                float newScale = (currentScale == 1.0f) ? 0.5f : 1.0f;
+                float newScale = (currentScale == 1.0f) ? 0.1f : 1.0f;
                 projectm_set_time_scale(_projectM, newScale);
                 SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Slow Motion: %s (time scale: %.1fx)",
                             newScale < 1.0f ? "ON" : "OFF", newScale);
@@ -308,18 +310,42 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
             break;
 
         case SDLK_UP:
+            if (sdl_mod & KMOD_LGUI || sdl_mod & KMOD_RGUI || sdl_mod & KMOD_LCTRL)
             {
+                // CMD+UP: Increase beat sensitivity
                 float newSensitivity = projectm_get_beat_sensitivity(_projectM) + 0.01f;
                 projectm_set_beat_sensitivity(_projectM, newSensitivity);
                 SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Beat Sensitivity: %.2f", newSensitivity);
             }
+            else
+            {
+                // UP: Increase time scale (speed up)
+                float currentScale = projectm_get_time_scale(_projectM);
+                // Use 0.01 increments below 0.1, otherwise 0.1 increments
+                float increment = (currentScale < 0.1f) ? 0.01f : 0.1f;
+                float newScale = std::min(2.0f, currentScale + increment);
+                projectm_set_time_scale(_projectM, newScale);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Time Scale: %.2fx", newScale);
+            }
             break;
 
         case SDLK_DOWN:
+            if (sdl_mod & KMOD_LGUI || sdl_mod & KMOD_RGUI || sdl_mod & KMOD_LCTRL)
             {
+                // CMD+DOWN: Decrease beat sensitivity
                 float newSensitivity = projectm_get_beat_sensitivity(_projectM) - 0.01f;
                 projectm_set_beat_sensitivity(_projectM, newSensitivity);
                 SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Beat Sensitivity: %.2f", newSensitivity);
+            }
+            else
+            {
+                // DOWN: Decrease time scale (slow down)
+                float currentScale = projectm_get_time_scale(_projectM);
+                // Use 0.01 increments below 0.1, otherwise 0.1 increments
+                float increment = (currentScale <= 0.1f) ? 0.01f : 0.1f;
+                float newScale = std::max(0.01f, currentScale - increment);
+                projectm_set_time_scale(_projectM, newScale);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Time Scale: %.2fx", newScale);
             }
             break;
 

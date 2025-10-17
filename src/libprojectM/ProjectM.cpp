@@ -294,7 +294,7 @@ auto ProjectM::GetBeatSensitivity() const -> float
 
 void ProjectM::SetTimeScale(float scale)
 {
-    m_timeScale = std::min(std::max(0.1f, scale), 2.0f);
+    m_timeScale = std::min(std::max(0.01f, scale), 2.0f);
     if (m_timeKeeper)
     {
         m_timeKeeper->SetTimeScale(m_timeScale);
