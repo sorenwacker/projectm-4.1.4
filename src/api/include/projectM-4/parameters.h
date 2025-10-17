@@ -63,6 +63,24 @@ PROJECTM_EXPORT void projectm_set_beat_sensitivity(projectm_handle instance, flo
 PROJECTM_EXPORT float projectm_get_beat_sensitivity(projectm_handle instance);
 
 /**
+ * @brief Sets the time scale multiplier for slow motion effects.
+ *
+ * The time scale multiplier controls the speed of animations without affecting FPS.
+ * Values less than 1.0 slow down animations, values greater than 1.0 speed them up.
+ *
+ * @param instance The projectM instance handle.
+ * @param scale The time scale multiplier (clamped to 0.1-2.0).
+ */
+PROJECTM_EXPORT void projectm_set_time_scale(projectm_handle instance, float scale);
+
+/**
+ * @brief Returns the time scale multiplier.
+ * @param instance The projectM instance handle.
+ * @return The current time scale multiplier.
+ */
+PROJECTM_EXPORT float projectm_get_time_scale(projectm_handle instance);
+
+/**
  * @brief Sets the minimum display time before a hard cut can happen.
  *
  * <p>Hard cuts are beat-sensitive preset transitions, immediately changing from

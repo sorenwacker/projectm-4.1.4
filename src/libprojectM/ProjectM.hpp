@@ -107,6 +107,10 @@ public:
 
     auto GetBeatSensitivity() const -> float;
 
+    void SetTimeScale(float scale);
+
+    auto GetTimeScale() const -> float;
+
     auto SoftCutDuration() const -> double;
 
     void SetSoftCutDuration(double seconds);
@@ -195,6 +199,7 @@ private:
     bool m_hardCutEnabled{false};    //!< If true, hard cuts based on beat detection are enabled.
     float m_hardCutSensitivity{2.0}; //!< Loudness sensitivity value for hard cuts.
     float m_beatSensitivity{1.0};    //!< General beat sensitivity modifier for presets.
+    float m_timeScale{1.0};          //!< Time scale multiplier for slow motion effect (1.0 = normal, 0.5 = half speed).
     bool m_aspectCorrection{true};   //!< If true, corrects aspect ratio for non-rectangular windows.
     float m_easterEgg{1.0};          //!< Random preset duration modifier. See TimeKeeper class.
     float m_previousFrameVolume{};   //!< Volume in previous frame, used for hard cuts.

@@ -159,6 +159,7 @@ void projectMSDL::printKeyboardShortcuts()
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+M             - Change monitor");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+S             - Stretch across monitors");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  A                 - Toggle aspect correction");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  S                 - Toggle slow motion (0.5x speed)");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nOther:");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  H                 - Show this help");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+Q             - Quit");
@@ -244,6 +245,16 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
 #endif
                 return; // handled
             }
+            else
+            {
+                // s without modifier: slow motion toggle
+                float currentScale = projectm_get_time_scale(_projectM);
+                float newScale = (currentScale == 1.0f) ? 0.5f : 1.0f;
+                projectm_set_time_scale(_projectM, newScale);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Slow Motion: %s (time scale: %.1fx)",
+                            newScale < 1.0f ? "ON" : "OFF", newScale);
+            }
+            break;
 
         case SDLK_m:
             if (sdl_mod & KMOD_LGUI || sdl_mod & KMOD_RGUI || sdl_mod & KMOD_LCTRL)
