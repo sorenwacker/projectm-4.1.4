@@ -312,17 +312,18 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
         case SDLK_UP:
             if (sdl_mod & KMOD_LGUI || sdl_mod & KMOD_RGUI || sdl_mod & KMOD_LCTRL)
             {
-                // CMD+UP: Increase beat sensitivity
-                float newSensitivity = projectm_get_beat_sensitivity(_projectM) + 0.01f;
+                // CMD+UP: Increase beat sensitivity (max 2.0)
+                float currentSensitivity = projectm_get_beat_sensitivity(_projectM);
+                float newSensitivity = std::min(2.0f, currentSensitivity + 0.1f);
                 projectm_set_beat_sensitivity(_projectM, newSensitivity);
-                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Beat Sensitivity: %.2f", newSensitivity);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Beat Sensitivity: %.1f", newSensitivity);
             }
             else
             {
                 // UP: Increase time scale (speed up)
                 float currentScale = projectm_get_time_scale(_projectM);
-                // Use 0.01 increments below 0.1, otherwise 0.1 increments
-                float increment = (currentScale < 0.1f) ? 0.01f : 0.1f;
+                // Use 0.01 increments up to 0.09, then switch to 0.1 increments
+                float increment = (currentScale <= 0.09f) ? 0.01f : 0.1f;
                 float newScale = std::min(2.0f, currentScale + increment);
                 projectm_set_time_scale(_projectM, newScale);
                 SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Time Scale: %.2fx", newScale);
@@ -332,10 +333,11 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
         case SDLK_DOWN:
             if (sdl_mod & KMOD_LGUI || sdl_mod & KMOD_RGUI || sdl_mod & KMOD_LCTRL)
             {
-                // CMD+DOWN: Decrease beat sensitivity
-                float newSensitivity = projectm_get_beat_sensitivity(_projectM) - 0.01f;
+                // CMD+DOWN: Decrease beat sensitivity (min 0.0)
+                float currentSensitivity = projectm_get_beat_sensitivity(_projectM);
+                float newSensitivity = std::max(0.0f, currentSensitivity - 0.1f);
                 projectm_set_beat_sensitivity(_projectM, newSensitivity);
-                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Beat Sensitivity: %.2f", newSensitivity);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Beat Sensitivity: %.1f", newSensitivity);
             }
             else
             {
