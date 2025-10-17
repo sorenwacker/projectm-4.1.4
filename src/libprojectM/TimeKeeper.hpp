@@ -81,6 +81,16 @@ public:
         m_easterEgg = value;
     }
 
+    inline void SetTimeScale(float scale)
+    {
+        m_timeScale = scale;
+    }
+
+    inline auto GetTimeScale() const -> float
+    {
+        return m_timeScale;
+    }
+
     inline auto SecondsSinceLastFrame() const -> double
     {
         return m_secondsSinceLastFrame;
@@ -96,6 +106,7 @@ private:
     double m_secondsSinceLastFrame{};
 
     double m_easterEgg{};
+    float m_timeScale{1.0f};
 
     double m_presetDuration{};
     double m_presetDurationA{};

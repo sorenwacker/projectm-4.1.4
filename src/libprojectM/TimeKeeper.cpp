@@ -19,8 +19,8 @@ void TimeKeeper::UpdateTimers()
     auto currentTime = std::chrono::high_resolution_clock::now();
 
     double currentFrameTime = std::chrono::duration<double>(currentTime - m_startTime).count();
-    m_secondsSinceLastFrame = currentFrameTime - m_currentTime;
-    m_currentTime = currentFrameTime;
+    m_secondsSinceLastFrame = (currentFrameTime - m_currentTime) * m_timeScale;
+    m_currentTime += m_secondsSinceLastFrame;
     m_presetFrameA++;
     m_presetFrameB++;
 }

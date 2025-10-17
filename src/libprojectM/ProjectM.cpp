@@ -295,6 +295,10 @@ auto ProjectM::GetBeatSensitivity() const -> float
 void ProjectM::SetTimeScale(float scale)
 {
     m_timeScale = std::min(std::max(0.1f, scale), 2.0f);
+    if (m_timeKeeper)
+    {
+        m_timeKeeper->SetTimeScale(m_timeScale);
+    }
 }
 
 auto ProjectM::GetTimeScale() const -> float
@@ -442,7 +446,7 @@ auto ProjectM::GetRenderContext() -> Renderer::RenderContext
     Renderer::RenderContext ctx{};
     ctx.viewportSizeX = m_windowWidth;
     ctx.viewportSizeY = m_windowHeight;
-    ctx.time = static_cast<float>(m_timeKeeper->GetRunningTime() * m_timeScale);
+    ctx.time = static_cast<float>(m_timeKeeper->GetRunningTime());
     ctx.progress = static_cast<float>(m_timeKeeper->PresetProgressA());
     ctx.fps = static_cast<float>(m_targetFps);
     ctx.frame = m_frameCount;
