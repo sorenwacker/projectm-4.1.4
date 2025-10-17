@@ -30,7 +30,10 @@ void TimeKeeper::UpdateTimers()
     double realDelta = currentFrameTime - m_lastRealTime;
     m_lastRealTime = currentFrameTime;
 
-    // Apply time scale to get scaled delta
+    // Update real time (unscaled, for preset switching)
+    m_realTime += realDelta;
+
+    // Apply time scale to get scaled delta (for animations)
     m_secondsSinceLastFrame = realDelta * m_timeScale;
     m_currentTime += m_secondsSinceLastFrame;
 
@@ -41,7 +44,7 @@ void TimeKeeper::UpdateTimers()
 void TimeKeeper::StartPreset()
 {
     m_isSmoothing = false;
-    m_presetTimeA = m_currentTime;
+    m_presetTimeA = m_realTime;  // Use real time for preset switching
     m_presetFrameA = 1;
     m_presetDurationA = sampledPresetDuration();
 }
@@ -49,7 +52,7 @@ void TimeKeeper::StartPreset()
 void TimeKeeper::StartSmoothing()
 {
     m_isSmoothing = true;
-    m_presetTimeB = m_currentTime;
+    m_presetTimeB = m_realTime;  // Use real time for preset switching
     m_presetFrameB = 1;
     m_presetDurationB = sampledPresetDuration();
 }
@@ -64,12 +67,12 @@ void TimeKeeper::EndSmoothing()
 
 bool TimeKeeper::CanHardCut()
 {
-    return (m_currentTime - m_presetTimeA) > m_hardCutDuration;
+    return (m_realTime - m_presetTimeA) > m_hardCutDuration;
 }
 
 double TimeKeeper::SmoothRatio()
 {
-    return (m_currentTime - m_presetTimeB) / m_softCutDuration;
+    return (m_realTime - m_presetTimeB) / m_softCutDuration;
 }
 
 bool TimeKeeper::IsSmoothing()
@@ -89,12 +92,12 @@ double TimeKeeper::PresetProgressA()
         return 1.0;
     }
 
-    return std::min((m_currentTime - m_presetTimeA) / m_presetDurationA, 1.0);
+    return std::min((m_realTime - m_presetTimeA) / m_presetDurationA, 1.0);
 }
 
 double TimeKeeper::PresetProgressB()
 {
-    return std::min((m_currentTime - m_presetTimeB) / m_presetDurationB, 1.0);
+    return std::min((m_realTime - m_presetTimeB) / m_presetDurationB, 1.0);
 }
 
 int TimeKeeper::PresetFrameB()

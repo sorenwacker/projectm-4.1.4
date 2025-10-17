@@ -114,7 +114,8 @@ private:
     double m_softCutDuration{};
     double m_hardCutDuration{};
 
-    double m_currentTime{};
+    double m_currentTime{};  // Scaled time for animations
+    double m_realTime{};  // Unscaled time for preset switching
     double m_lastRealTime{};
     double m_presetTimeA{};
     double m_presetTimeB{};
