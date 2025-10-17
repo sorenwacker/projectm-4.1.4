@@ -169,13 +169,18 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
     switch (sdl_keycode)
     {
         case SDLK_a:
-            projectm_set_aspect_correction(_projectM, !projectm_get_aspect_correction(_projectM));
+            {
+                bool newValue = !projectm_get_aspect_correction(_projectM);
+                projectm_set_aspect_correction(_projectM, newValue);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Aspect Correction: %s", newValue ? "ON" : "OFF");
+            }
             break;
 
         case SDLK_q:
             if (sdl_mod & KMOD_LGUI || sdl_mod & KMOD_RGUI || sdl_mod & KMOD_LCTRL)
             {
                 // cmd/ctrl-q = quit
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Quit requested");
                 done = 1;
                 return;
             }
@@ -199,11 +204,13 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
                 { // if stretching is not already enabled, enable it.
                     stretchMonitors();
                     this->stretch = true;
+                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Stretch monitors: ON");
                 }
                 else
                 {
                     toggleFullScreen(); // else, just toggle full screen so we leave stretch mode.
                     this->stretch = false;
+                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Stretch monitors: OFF");
                 }
 #endif
                 return; // handled
@@ -216,6 +223,7 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
                 // Stereo requires fullscreen
 #if !STEREOSCOPIC_SBS
                 nextMonitor();
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Switched to next monitor");
 #endif
                 this->stretch = false; // if we are switching monitors, ensure we disable monitor stretching.
                 return;                // handled
@@ -228,6 +236,7 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
                 // Stereo requires fullscreen
 #if !STEREOSCOPIC_SBS
                 toggleFullScreen();
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Fullscreen: %s", _isFullScreen ? "ON" : "OFF");
 #endif
                 this->stretch = false; // if we are toggling fullscreen, ensure we disable monitor stretching.
                 return;                // handled
@@ -239,32 +248,48 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
             projectm_playlist_set_shuffle(_playlist, true);
             projectm_playlist_play_next(_playlist, true);
             projectm_playlist_set_shuffle(_playlist, _shuffle);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Random preset selected");
             break;
 
         case SDLK_y:
             _shuffle = !_shuffle;
             projectm_playlist_set_shuffle(_playlist, _shuffle);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Shuffle: %s", _shuffle ? "ON" : "OFF");
             break;
 
         case SDLK_LEFT:
             projectm_playlist_play_previous(_playlist, true);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Previous preset");
             break;
 
         case SDLK_RIGHT:
             projectm_playlist_play_next(_playlist, true);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Next preset");
             break;
 
         case SDLK_UP:
-            projectm_set_beat_sensitivity(_projectM, projectm_get_beat_sensitivity(_projectM) + 0.01f);
+            {
+                float newSensitivity = projectm_get_beat_sensitivity(_projectM) + 0.01f;
+                projectm_set_beat_sensitivity(_projectM, newSensitivity);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Beat Sensitivity: %.2f", newSensitivity);
+            }
             break;
 
         case SDLK_DOWN:
-            projectm_set_beat_sensitivity(_projectM, projectm_get_beat_sensitivity(_projectM) - 0.01f);
+            {
+                float newSensitivity = projectm_get_beat_sensitivity(_projectM) - 0.01f;
+                projectm_set_beat_sensitivity(_projectM, newSensitivity);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Beat Sensitivity: %.2f", newSensitivity);
+            }
             break;
 
         case SDLK_SPACE:
-            projectm_set_preset_locked(_projectM, !projectm_get_preset_locked(_projectM));
-            UpdateWindowTitle();
+            {
+                bool newValue = !projectm_get_preset_locked(_projectM);
+                projectm_set_preset_locked(_projectM, newValue);
+                UpdateWindowTitle();
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Lock: %s", newValue ? "LOCKED" : "UNLOCKED");
+            }
             break;
 
     }

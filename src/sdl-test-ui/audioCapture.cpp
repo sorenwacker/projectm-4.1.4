@@ -57,6 +57,7 @@ void projectMSDL::audioInputCallbackF32(void *userdata, unsigned char *stream, i
 
 int projectMSDL::toggleAudioInput() {
     // trigger a toggle with CMD-I or CTRL-I
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Toggling audio input device...");
     if (wasapi) { // we are currently on WASAPI, so we are going to revert to a microphone/line-in input.
         if (this->openAudioInput())
             this->beginAudioCapture();

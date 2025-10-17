@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 // Disable LOOPBACK and FAKE audio to enable microphone input
 #ifdef _WIN32
@@ -81,7 +81,7 @@
 #define SDL_MAIN_HANDLED
 #include "SDL.h"
 #else
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #endif /** _WIN32 */
 
 
