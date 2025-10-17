@@ -105,6 +105,16 @@ void ProjectM::RenderFrame()
     m_audioStorage.UpdateFrameAudioData(m_timeKeeper->SecondsSinceLastFrame(), m_frameCount);
     auto audioData = m_audioStorage.GetFrameAudioData();
 
+    // Apply beat sensitivity scaling to audio data
+    audioData.bass *= m_beatSensitivity;
+    audioData.bassAtt *= m_beatSensitivity;
+    audioData.mid *= m_beatSensitivity;
+    audioData.midAtt *= m_beatSensitivity;
+    audioData.treb *= m_beatSensitivity;
+    audioData.trebAtt *= m_beatSensitivity;
+    audioData.vol *= m_beatSensitivity;
+    audioData.volAtt *= m_beatSensitivity;
+
     // Check if the preset isn't locked, and we've not already notified the user
     if (!m_presetChangeNotified)
     {
