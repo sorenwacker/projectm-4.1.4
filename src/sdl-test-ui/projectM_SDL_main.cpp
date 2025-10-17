@@ -73,7 +73,10 @@ static int mainLoop(void *userData) {
 
 int main(int argc, char *argv[]) {
     projectMSDL *app = setupSDLApp();
-    
+
+    // Show keyboard shortcuts at startup
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "projectM v4.1.4 - Press 'H' for keyboard shortcuts");
+
     int status = mainLoop(&app);
 
     // cleanup

@@ -140,6 +140,31 @@ void projectMSDL::toggleFullScreen()
     }
 }
 
+void projectMSDL::printKeyboardShortcuts()
+{
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\n========================================");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "projectM Keyboard Shortcuts");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "========================================");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nPresets:");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  LEFT/RIGHT Arrow  - Navigate presets");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  R                 - Random preset");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  SPACE             - Lock/unlock preset");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  Y                 - Toggle shuffle");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  Mouse Scroll      - Change presets");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nAudio:");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+I             - Cycle audio input devices");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  UP/DOWN Arrow     - Adjust beat sensitivity");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nDisplay:");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+F             - Toggle fullscreen");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+M             - Change monitor");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+S             - Stretch across monitors");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  A                 - Toggle aspect correction");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nOther:");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  H                 - Show this help");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+Q             - Quit");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "========================================\n");
+}
+
 void projectMSDL::scrollHandler(SDL_Event* sdl_evt)
 {
     // handle mouse scroll wheel - up++
@@ -168,6 +193,10 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
     // handle keyboard input (for our app first, then projectM)
     switch (sdl_keycode)
     {
+        case SDLK_h:
+            printKeyboardShortcuts();
+            break;
+
         case SDLK_a:
             {
                 bool newValue = !projectm_get_aspect_correction(_projectM);
