@@ -41,7 +41,8 @@ jobs:
       run: |
         cmake -B build -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_INSTALL_PREFIX=/usr/local
+          -DCMAKE_INSTALL_PREFIX=/usr/local \
+          -DENABLE_SDL_UI=ON
 
     - name: Build
       run: cmake --build build -j$(nproc)
@@ -89,7 +90,8 @@ jobs:
       run: |
         cmake -B build -G "Visual Studio 17 2022" -A x64 `
           -DCMAKE_BUILD_TYPE=Release `
-          -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
+          -DENABLE_SDL_UI=ON
 
     - name: Build
       run: cmake --build build --config Release -j $env:NUMBER_OF_PROCESSORS
@@ -165,7 +167,8 @@ jobs:
         cmake -B build -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_OSX_ARCHITECTURES=${{ matrix.cmake_arch }} \
-          -DCMAKE_INSTALL_PREFIX=/usr/local
+          -DCMAKE_INSTALL_PREFIX=/usr/local \
+          -DENABLE_SDL_UI=ON
 
     - name: Build
       run: cmake --build build -j$(sysctl -n hw.ncpu)
