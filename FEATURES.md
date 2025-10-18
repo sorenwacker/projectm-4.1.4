@@ -4,6 +4,51 @@ This is a customized build of projectM with enhanced features for better preset 
 
 ## New Features
 
+### 🖥️ Terminal Command Center
+
+Control projectM entirely from the Terminal with instant single-keypress commands (no ENTER needed).
+
+**How it works:**
+- Terminal runs in raw mode for instant single-character input
+- All commands work immediately without pressing ENTER
+- Real-time feedback with emoji indicators
+- Works alongside SDL window controls
+
+**Quick Commands:**
+- **Arrow keys** (↑↓←→): Time scale and preset navigation
+- **Number keys** (0-9): Preset duration control
+- **Letters**: All other controls (N/P for next/prev, F for favorites, etc.)
+
+See "Terminal Commands" section below for complete list.
+
+### ⏱️ Preset Duration Control
+
+Control how long each preset displays before automatically switching to the next.
+
+- **Keys 1-9**: Set fixed duration
+  - **1** = 5 seconds (rapid browsing)
+  - **2** = 10 seconds (fast)
+  - **3** = 15 seconds
+  - **4** = 20 seconds
+  - **5** = 30 seconds (medium, good default)
+  - **6** = 45 seconds
+  - **7** = 60 seconds (1 minute)
+  - **8** = 90 seconds (1.5 minutes)
+  - **9** = 120 seconds (2 minutes, enjoy mode)
+
+- **Key 0**: Toggle random duration mode
+  - When ON: Each preset gets a random duration (5-120 seconds)
+  - When OFF: Uses last set fixed duration
+  - Creates unpredictable, natural flow
+
+**Use Cases:**
+- Quick browsing: Press `1` for 5-second rapid flipping
+- Finding favorites: Use `1` to browse fast, `F` to favorite, `L` to lock
+- Party mode: Press `0` for random unpredictable timing
+- Meditation/focus: Press `9` for long 2-minute displays
+
+**Default**: 10 seconds (configurable in config.inp)
+
 ### 🎵 Time Scale Control (Slow Motion / Fast Forward)
 
 Control the animation speed independently from preset switching timing.
@@ -69,7 +114,51 @@ presets/
 
 All folders are created on startup if they don't exist.
 
-## Complete Keyboard Shortcuts
+## Terminal Commands
+
+All commands work instantly in the Terminal (no ENTER needed). Press **H** or **?** in Terminal for help.
+
+### Preset Navigation
+- **→** or **N**: Next preset
+- **←** or **P**: Previous preset
+- **R**: Random preset
+- **L**: Lock/unlock current preset
+- **Y**: Toggle shuffle
+
+### Preset Duration
+- **1**: 5 seconds (rapid browsing)
+- **2**: 10 seconds (fast)
+- **3**: 15 seconds
+- **4**: 20 seconds
+- **5**: 30 seconds (medium)
+- **6**: 45 seconds
+- **7**: 60 seconds (1 minute)
+- **8**: 90 seconds (1.5 minutes)
+- **9**: 120 seconds (2 minutes)
+- **0**: Toggle random mode (5-120s per preset)
+
+### Favorites & Organization
+- **F**: Add/remove preset to favorites
+- **T**: Toggle favorites-only mode
+- **D**: Move preset to deleted folder
+
+### Time & Audio Control
+- **↑** or **+**: Increase time scale
+- **↓** or **-**: Decrease time scale
+- **S**: Toggle slow motion (0.1x/1.0x)
+- **]**: Increase beat sensitivity
+- **[**: Decrease beat sensitivity
+
+### Display
+- **M**: Toggle fullscreen
+- **A**: Toggle aspect correction
+
+### Other
+- **I**: Show current status
+- **H** or **?**: Show help
+- **Q**: Quit projectM
+
+## Complete Keyboard Shortcuts (SDL Window)
 
 ### Presets
 - **LEFT/RIGHT Arrow**: Navigate presets
@@ -80,6 +169,8 @@ All folders are created on startup if they don't exist.
 - **T**: Toggle favorites-only mode
 - **CMD+Delete**: Move preset to deleted folder
 - **Mouse Scroll**: Change presets
+- **1-9**: Set preset duration (5s to 120s)
+- **0**: Toggle random duration mode
 
 ### Audio
 - **CMD+I**: Cycle audio input devices
@@ -129,6 +220,19 @@ open projectM.app
 
 ## Technical Details
 
+### Terminal Command Center Implementation
+- Uses termios for raw terminal mode (character-by-character input)
+- Non-blocking read with VMIN=0, VTIME=0
+- Escape sequence detection for arrow keys (ESC + '[' + direction)
+- Terminal mode automatically restored on exit
+- Works alongside SDL window input (dual control)
+
+### Preset Duration Control
+- Uses projectM API: `projectm_set_preset_duration()` and `projectm_get_preset_duration()`
+- Random mode: callback on `presetSwitchedEvent` generates new duration (5-120s)
+- Pressing any fixed duration key (1-9) automatically disables random mode
+- Default duration: 10 seconds (from config.inp)
+
 ### Time Scale Implementation
 - Dual time tracking: scaled time (for animations) and real time (for preset switching)
 - Time scale affects `m_currentTime` but not `m_realTime`
@@ -144,6 +248,7 @@ open projectM.app
 - Uses move operations (not copy) to prevent duplicates
 - Playlist automatically reloads when presets are moved
 - Window title shows current mode: `[favorites]` or `[locked]` or both
+- Path tracking: `_presetName` updated after file moves to prevent errors
 
 ### Delete System
 - Soft delete: moves presets to `deleted/` folder
@@ -182,7 +287,13 @@ All features work on:
 ## Version Information
 
 - **Base Version**: projectM v4.1.4
-- **Custom Features**: Time scale, beat sensitivity, favorites, safe delete
+- **Custom Features**:
+  - Terminal command center with instant single-keypress control
+  - Preset duration control (1-9 keys + random mode)
+  - Time scale control (0.01x-2.0x)
+  - Beat sensitivity control (0.0-2.0)
+  - Favorites system with toggle mode
+  - Safe delete with recovery
 - **Build Date**: 2025-10-18
 - **Platform**: macOS (cross-platform compatible)
 

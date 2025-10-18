@@ -61,6 +61,7 @@ static int mainLoop(void *userData) {
         advanceUnlockedFPSCounterFrame(start);
 #else
         app->pollEvent();
+        app->processTerminalCommand(); // Check for terminal commands
         Uint32 elapsed = SDL_GetTicks() - last_time;
         if (elapsed < frame_delay)
             SDL_Delay(frame_delay - elapsed);
@@ -77,7 +78,16 @@ int main(int argc, char *argv[]) {
     // Show keyboard shortcuts at startup
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "projectM v4.1.4 - Press 'H' for keyboard shortcuts");
 
+    // Set terminal to raw mode for single-key input
+    app->setTerminalMode();
+
+    // Show terminal command help
+    app->printTerminalHelp();
+
     int status = mainLoop(&app);
+
+    // Restore terminal mode
+    app->restoreTerminalMode();
 
     // cleanup
     SDL_GL_DeleteContext(app->_openGlContext);
@@ -86,7 +96,7 @@ int main(int argc, char *argv[]) {
         app->endAudioCapture();
 #endif
     delete app;
-    
+
     return status;
 }
 

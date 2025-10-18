@@ -31,6 +31,12 @@
 #include "pmSDL.hpp"
 
 #include <vector>
+#include <unistd.h>
+#include <sys/select.h>
+#include <termios.h>
+#include <fstream>
+
+static struct termios orig_termios;
 
 projectMSDL::projectMSDL(SDL_GLContext glCtx, const std::string& presetPath)
     : _openGlContext(glCtx)
@@ -168,6 +174,9 @@ void projectMSDL::printKeyboardShortcuts()
     printf("  T                 - Toggle favorites-only mode\n");
     printf("  CMD+Delete        - Move preset to deleted folder\n");
     printf("  Mouse Scroll      - Change presets\n");
+    printf("\nPreset Duration:\n");
+    printf("  1-9               - Set duration (1=5s, 2=10s ... 9=120s)\n");
+    printf("  0                 - Toggle random mode (5-120s per preset)\n");
     printf("\nAudio:\n");
     printf("  CMD+I             - Cycle audio input devices\n");
     printf("  CMD+UP/DOWN       - Adjust beat sensitivity\n");
@@ -182,7 +191,337 @@ void projectMSDL::printKeyboardShortcuts()
     printf("\nOther:\n");
     printf("  H                 - Show this help\n");
     printf("  CMD+Q             - Quit\n");
+    printf("\n* Type 'help' in terminal for command-line control\n");
     printf("========================================\n\n");
+}
+
+void projectMSDL::setTerminalMode()
+{
+    // Get current terminal settings
+    tcgetattr(STDIN_FILENO, &orig_termios);
+
+    // Set terminal to raw mode (character-by-character input)
+    struct termios raw = orig_termios;
+    raw.c_lflag &= ~(ICANON | ECHO); // Disable canonical mode and echo
+    raw.c_cc[VMIN] = 0;  // Non-blocking read
+    raw.c_cc[VTIME] = 0;
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+void projectMSDL::restoreTerminalMode()
+{
+    // Restore original terminal settings
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+}
+
+void projectMSDL::printTerminalHelp()
+{
+    printf("\n========================================\n");
+    printf("Terminal Command Center\n");
+    printf("========================================\n");
+    printf("\nSingle-key commands (no ENTER needed):\n\n");
+    printf("Preset Navigation:\n");
+    printf("  → or N           - Next preset\n");
+    printf("  ← or P           - Previous preset\n");
+    printf("  R                - Random preset\n");
+    printf("  L                - Lock/unlock current preset\n");
+    printf("  Y                - Toggle shuffle\n");
+    printf("\nPreset Duration (seconds per preset):\n");
+    printf("  1                - 5s (rapid browsing)\n");
+    printf("  2                - 10s (fast)\n");
+    printf("  3                - 15s\n");
+    printf("  4                - 20s\n");
+    printf("  5                - 30s (medium)\n");
+    printf("  6                - 45s\n");
+    printf("  7                - 60s (1 min)\n");
+    printf("  8                - 90s (1.5 min)\n");
+    printf("  9                - 120s (2 min, enjoy)\n");
+    printf("  0                - Toggle random mode (5-120s per preset)\n");
+    printf("\nFavorites & Organization:\n");
+    printf("  F                - Add/remove preset to favorites\n");
+    printf("  T                - Toggle favorites-only mode\n");
+    printf("  D                - Move preset to deleted folder\n");
+    printf("\nTime & Audio Control:\n");
+    printf("  ↑ or +           - Increase time scale\n");
+    printf("  ↓ or -           - Decrease time scale\n");
+    printf("  S                - Toggle slow motion (0.1x/1.0x)\n");
+    printf("  ]                - Increase beat sensitivity\n");
+    printf("  [                - Decrease beat sensitivity\n");
+    printf("\nDisplay:\n");
+    printf("  M                - Toggle fullscreen\n");
+    printf("  A                - Toggle aspect correction\n");
+    printf("\nOther:\n");
+    printf("  I                - Show current status\n");
+    printf("  H or ?           - Show this help\n");
+    printf("  Q                - Quit projectM\n");
+    printf("\n========================================\n");
+    printf("\nPress any key to control projectM...\n\n");
+    fflush(stdout);
+}
+
+void projectMSDL::processTerminalCommand()
+{
+    // Read a single character (non-blocking)
+    char c;
+    ssize_t n = read(STDIN_FILENO, &c, 1);
+    if (n <= 0) return; // No input available
+
+    // Check for escape sequences (arrow keys, etc.)
+    if (c == 27) // ESC character
+    {
+        char seq[2];
+        if (read(STDIN_FILENO, &seq[0], 1) != 1) return;
+        if (read(STDIN_FILENO, &seq[1], 1) != 1) return;
+
+        if (seq[0] == '[')
+        {
+            switch (seq[1])
+            {
+                case 'A': // Up arrow
+                    {
+                        float currentScale = projectm_get_time_scale(_projectM);
+                        float increment = (currentScale <= 0.09f) ? 0.01f : 0.1f;
+                        float newScale = std::min(2.0f, currentScale + increment);
+                        projectm_set_time_scale(_projectM, newScale);
+                        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[↑] ⏩ Time Scale: %.2fx", newScale);
+                    }
+                    return;
+                case 'B': // Down arrow
+                    {
+                        float currentScale = projectm_get_time_scale(_projectM);
+                        float increment = (currentScale <= 0.1f) ? 0.01f : 0.1f;
+                        float newScale = std::max(0.01f, currentScale - increment);
+                        projectm_set_time_scale(_projectM, newScale);
+                        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[↓] ⏪ Time Scale: %.2fx", newScale);
+                    }
+                    return;
+                case 'C': // Right arrow
+                    projectm_playlist_play_next(_playlist, true);
+                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[→] Next preset");
+                    return;
+                case 'D': // Left arrow
+                    projectm_playlist_play_previous(_playlist, true);
+                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[←] Previous preset");
+                    return;
+            }
+        }
+        return;
+    }
+
+    // Convert to uppercase for consistency
+    c = toupper(c);
+
+    // Process single-key commands
+    switch (c)
+    {
+        case 'H':
+        case '?':
+            printTerminalHelp();
+            break;
+
+        case 'N':
+            projectm_playlist_play_next(_playlist, true);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[N] → Next preset");
+            break;
+
+        case 'P':
+            projectm_playlist_play_previous(_playlist, true);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[P] ← Previous preset");
+            break;
+
+        case 'R':
+            projectm_playlist_set_shuffle(_playlist, true);
+            projectm_playlist_play_next(_playlist, true);
+            projectm_playlist_set_shuffle(_playlist, _shuffle);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[R] 🎲 Random preset");
+            break;
+
+        case 'L':
+            {
+                bool newValue = !projectm_get_preset_locked(_projectM);
+                projectm_set_preset_locked(_projectM, newValue);
+                UpdateWindowTitle();
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[L] 🔒 Preset Lock: %s", newValue ? "LOCKED" : "UNLOCKED");
+            }
+            break;
+
+        case 'Y':
+            _shuffle = !_shuffle;
+            projectm_playlist_set_shuffle(_playlist, _shuffle);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[Y] 🔀 Shuffle: %s", _shuffle ? "ON" : "OFF");
+            break;
+
+        case 'F':
+            if (_presetName.find("/favorites/") != std::string::npos)
+                movePresetFromFavorites();
+            else
+                movePresetToFavorites();
+            break;
+
+        case 'T':
+            toggleFavoritesMode();
+            break;
+
+        case 'D':
+            movePresetToDeleted();
+            break;
+
+        case '+':
+        case '=':
+            {
+                float currentScale = projectm_get_time_scale(_projectM);
+                float increment = (currentScale <= 0.09f) ? 0.01f : 0.1f;
+                float newScale = std::min(2.0f, currentScale + increment);
+                projectm_set_time_scale(_projectM, newScale);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[+] ⏩ Time Scale: %.2fx", newScale);
+            }
+            break;
+
+        case '-':
+        case '_':
+            {
+                float currentScale = projectm_get_time_scale(_projectM);
+                float increment = (currentScale <= 0.1f) ? 0.01f : 0.1f;
+                float newScale = std::max(0.01f, currentScale - increment);
+                projectm_set_time_scale(_projectM, newScale);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[-] ⏪ Time Scale: %.2fx", newScale);
+            }
+            break;
+
+        case 'S':
+            {
+                float currentScale = projectm_get_time_scale(_projectM);
+                float newScale = (currentScale == 1.0f) ? 0.1f : 1.0f;
+                projectm_set_time_scale(_projectM, newScale);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[S] 🐌 Slow Motion: %s (%.1fx)",
+                            newScale < 1.0f ? "ON" : "OFF", newScale);
+            }
+            break;
+
+        case ']':
+            {
+                float currentSensitivity = projectm_get_beat_sensitivity(_projectM);
+                float newSensitivity = std::min(2.0f, currentSensitivity + 0.1f);
+                projectm_set_beat_sensitivity(_projectM, newSensitivity);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[]] 🎵 Beat Sensitivity: %.1f", newSensitivity);
+            }
+            break;
+
+        case '[':
+            {
+                float currentSensitivity = projectm_get_beat_sensitivity(_projectM);
+                float newSensitivity = std::max(0.0f, currentSensitivity - 0.1f);
+                projectm_set_beat_sensitivity(_projectM, newSensitivity);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[[] 🎵 Beat Sensitivity: %.1f", newSensitivity);
+            }
+            break;
+
+        case 'M':
+            toggleFullScreen();
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[M] 🖥️  Fullscreen: %s", _isFullScreen ? "ON" : "OFF");
+            break;
+
+        case 'A':
+            {
+                bool newValue = !projectm_get_aspect_correction(_projectM);
+                projectm_set_aspect_correction(_projectM, newValue);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[A] 📐 Aspect Correction: %s", newValue ? "ON" : "OFF");
+            }
+            break;
+
+        case 'I':
+            printf("\n========================================\n");
+            printf("Current Status\n");
+            printf("========================================\n");
+            printf("Preset: %s\n", _presetName.c_str());
+            printf("Locked: %s\n", projectm_get_preset_locked(_projectM) ? "YES" : "NO");
+            printf("Favorites Mode: %s\n", _favoritesOnlyMode ? "ON" : "OFF");
+            printf("Shuffle: %s\n", _shuffle ? "ON" : "OFF");
+            if (_randomDurationMode)
+            {
+                printf("Preset Duration: RANDOM (5-120s each preset)\n");
+            }
+            else
+            {
+                printf("Preset Duration: %.0f seconds\n", projectm_get_preset_duration(_projectM));
+            }
+            printf("Time Scale: %.2fx\n", projectm_get_time_scale(_projectM));
+            printf("Beat Sensitivity: %.1f\n", projectm_get_beat_sensitivity(_projectM));
+            printf("Fullscreen: %s\n", _isFullScreen ? "YES" : "NO");
+            printf("Playlist Size: %d presets\n", projectm_playlist_size(_playlist));
+            printf("========================================\n\n");
+            fflush(stdout);
+            break;
+
+        case 'Q':
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[Q] 👋 Quit requested from terminal");
+            done = true;
+            break;
+
+        case '1':
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 5.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[1] ⏱️  Preset Duration: 5 seconds (rapid)");
+            break;
+        case '2':
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 10.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[2] ⏱️  Preset Duration: 10 seconds (fast)");
+            break;
+        case '3':
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 15.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[3] ⏱️  Preset Duration: 15 seconds");
+            break;
+        case '4':
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 20.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[4] ⏱️  Preset Duration: 20 seconds");
+            break;
+        case '5':
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 30.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[5] ⏱️  Preset Duration: 30 seconds (medium)");
+            break;
+        case '6':
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 45.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[6] ⏱️  Preset Duration: 45 seconds");
+            break;
+        case '7':
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 60.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[7] ⏱️  Preset Duration: 60 seconds (1 min)");
+            break;
+        case '8':
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 90.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[8] ⏱️  Preset Duration: 90 seconds (1.5 min)");
+            break;
+        case '9':
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 120.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[9] ⏱️  Preset Duration: 120 seconds (2 min)");
+            break;
+        case '0':
+            {
+                // Toggle random duration mode
+                _randomDurationMode = !_randomDurationMode;
+                if (_randomDurationMode)
+                {
+                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[0] 🎲 Random Duration Mode: ON (each preset gets random duration 5-120s)");
+                }
+                else
+                {
+                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[0] ⏱️  Random Duration Mode: OFF");
+                }
+            }
+            break;
+
+        default:
+            // Ignore unknown keys silently
+            break;
+    }
 }
 
 void projectMSDL::reloadPlaylist()
@@ -219,7 +558,7 @@ void projectMSDL::movePresetToFavorites()
     // Check if preset is already in favorites
     if (_presetName.find("/favorites/") != std::string::npos)
     {
-        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Preset is already in favorites");
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "⭐ Already in favorites");
         return;
     }
 
@@ -229,6 +568,15 @@ void projectMSDL::movePresetToFavorites()
 
     // Build destination path
     std::string destPath = _favoritesPath + "/" + filename;
+
+    // Check if source file exists
+    std::ifstream srcFile(_presetName);
+    if (!srcFile.good())
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Preset file not found (may have been moved): %s", filename.c_str());
+        return;
+    }
+    srcFile.close();
 
     // Move file using system command (cross-platform)
 #ifdef _WIN32
@@ -241,13 +589,15 @@ void projectMSDL::movePresetToFavorites()
 
     if (result == 0)
     {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Moved to favorites: %s", filename.c_str());
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "⭐ Added to favorites: %s", filename.c_str());
+        // Update the preset name to reflect new location
+        _presetName = destPath;
         // Reload playlist to reflect changes
         reloadPlaylist();
     }
     else
     {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to move preset to favorites");
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to move preset to favorites (file may not exist)");
     }
 }
 
@@ -262,7 +612,7 @@ void projectMSDL::movePresetFromFavorites()
     // Check if preset is in favorites
     if (_presetName.find("/favorites/") == std::string::npos)
     {
-        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Preset is not in favorites");
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Not in favorites");
         return;
     }
 
@@ -284,7 +634,9 @@ void projectMSDL::movePresetFromFavorites()
 
     if (result == 0)
     {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Moved from favorites: %s", filename.c_str());
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "☆ Removed from favorites: %s", filename.c_str());
+        // Update the preset name to reflect new location
+        _presetName = destPath;
         // Reload playlist to reflect changes
         reloadPlaylist();
     }
@@ -327,7 +679,9 @@ void projectMSDL::movePresetToDeleted()
 
     if (result == 0)
     {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Moved to deleted: %s", filename.c_str());
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "🗑️  Moved to deleted: %s", filename.c_str());
+        // Update the preset name to reflect new location
+        _presetName = destPath;
         // Reload playlist to reflect changes
         reloadPlaylist();
     }
@@ -561,6 +915,67 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
             }
             break;
 
+        // Preset duration controls (number keys 0-9)
+        case SDLK_1:
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 5.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 5 seconds (rapid)");
+            break;
+        case SDLK_2:
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 10.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 10 seconds (fast)");
+            break;
+        case SDLK_3:
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 15.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 15 seconds");
+            break;
+        case SDLK_4:
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 20.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 20 seconds");
+            break;
+        case SDLK_5:
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 30.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 30 seconds (medium)");
+            break;
+        case SDLK_6:
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 45.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 45 seconds");
+            break;
+        case SDLK_7:
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 60.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 60 seconds (1 min)");
+            break;
+        case SDLK_8:
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 90.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 90 seconds (1.5 min)");
+            break;
+        case SDLK_9:
+            _randomDurationMode = false;
+            projectm_set_preset_duration(_projectM, 120.0);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 120 seconds (2 min)");
+            break;
+        case SDLK_0:
+            {
+                // Toggle random duration mode
+                _randomDurationMode = !_randomDurationMode;
+                if (_randomDurationMode)
+                {
+                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Random Duration Mode: ON (each preset gets random 5-120s)");
+                }
+                else
+                {
+                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Random Duration Mode: OFF");
+                }
+            }
+            break;
+
     }
 }
 
@@ -770,6 +1185,14 @@ void projectMSDL::presetSwitchedEvent(bool isHardCut, unsigned int index, void* 
 
     app->_presetName = presetName;
     projectm_playlist_free_string(presetName);
+
+    // Apply random duration if random mode is enabled
+    if (app->_randomDurationMode)
+    {
+        double randomDuration = 5.0 + (rand() % 116);  // 5-120 seconds
+        projectm_set_preset_duration(app->_projectM, randomDuration);
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "🎲 Random Duration: %.0f seconds", randomDuration);
+    }
 
     app->UpdateWindowTitle();
 }

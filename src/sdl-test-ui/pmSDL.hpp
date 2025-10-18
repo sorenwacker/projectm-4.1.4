@@ -127,6 +127,10 @@ public:
     void touchDestroyAll();
     void renderFrame();
     void pollEvent();
+    void processTerminalCommand();
+    void printTerminalHelp();
+    void setTerminalMode();
+    void restoreTerminalMode();
     bool keymod = false;
     std::string getActivePresetName();
     void addFakePCM();
@@ -174,6 +178,7 @@ private:
     size_t _fps{60};
 
     bool _shuffle{true};
+    bool _randomDurationMode{false}; //!< Random duration for each preset
 
     // audio input device characteristics
     unsigned int _numAudioDevices{0};
