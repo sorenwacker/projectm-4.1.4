@@ -55,6 +55,12 @@ if [ -f "config.inp" ]; then
     cp config.inp "${RESOURCES_DIR}/"
 fi
 
+# Copy documentation
+if [ -f "FEATURES.md" ]; then
+    echo "Copying documentation..."
+    cp FEATURES.md "${RESOURCES_DIR}/"
+fi
+
 # Create Info.plist
 echo "Creating Info.plist..."
 cat > "${CONTENTS_DIR}/Info.plist" << 'EOF'
