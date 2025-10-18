@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 // Disable LOOPBACK and FAKE audio to enable microphone input
 #ifdef _WIN32
@@ -81,7 +81,7 @@
 #define SDL_MAIN_HANDLED
 #include "SDL.h"
 #else
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #endif /** _WIN32 */
 
 
@@ -127,6 +127,10 @@ public:
     void touchDestroyAll();
     void renderFrame();
     void pollEvent();
+    void processTerminalCommand();
+    void printTerminalHelp();
+    void setTerminalMode();
+    void restoreTerminalMode();
     bool keymod = false;
     std::string getActivePresetName();
     void addFakePCM();
@@ -151,9 +155,21 @@ private:
 
     void scrollHandler(SDL_Event*);
     void keyHandler(SDL_Event*);
+    void printKeyboardShortcuts();
+    void copyPresetToFavorites();
+    void movePresetToFavorites();
+    void movePresetFromFavorites();
+    void toggleFavoritesMode();
+    void movePresetToDeleted();
+    void reloadPlaylist();
 
     projectm_handle _projectM{nullptr};
     projectm_playlist_handle _playlist{nullptr};
+
+    std::string _presetsBasePath; //!< Base path to presets directory
+    std::string _favoritesPath;   //!< Path to favorites subdirectory
+    std::string _deletedPath;     //!< Path to deleted subdirectory
+    bool _favoritesOnlyMode{false}; //!< Whether to show only favorites
 
     SDL_Window* _sdlWindow{nullptr};
     bool _isFullScreen{false};
@@ -162,6 +178,7 @@ private:
     size_t _fps{60};
 
     bool _shuffle{true};
+    bool _randomDurationMode{false}; //!< Random duration for each preset
 
     // audio input device characteristics
     unsigned int _numAudioDevices{0};
