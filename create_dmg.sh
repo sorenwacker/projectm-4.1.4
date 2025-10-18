@@ -108,32 +108,49 @@ tell application "Finder"
         set icon size of viewOptions to 128
         set background color of viewOptions to {255, 255, 255}
 
+        delay 1
+
         -- Position app icon on the left
         set position of item "${APP_BUNDLE}" of container window to {160, 180}
+
+        delay 1
 
         -- Position Applications symlink on the right
         set position of item "Applications" of container window to {480, 180}
 
-        -- Hide other files
+        delay 1
+
+        -- Position documentation files
         try
-            set position of item "README.txt" of container window to {160, 360}
+            set position of item "README.txt" of container window to {160, 340}
         end try
         try
-            set position of item "FEATURES.md" of container window to {320, 360}
+            set position of item "FEATURES.md" of container window to {320, 340}
         end try
 
+        -- Close and reopen to save settings
         close
+        delay 1
         open
+
+        -- Update and ensure .DS_Store is written
         update without registering applications
-        delay 2
+        delay 3
+
+        close
     end tell
 end tell
 EOF
 
-# Sync and unmount
+# Ensure .DS_Store is written
+echo "Ensuring layout is saved..."
+sleep 3
 sync
+sync
+
+# Unmount
 echo "Unmounting DMG..."
-hdiutil detach "${MOUNT_DIR}"
+hdiutil detach "${MOUNT_DIR}" || hdiutil detach "${MOUNT_DIR}" -force
 
 # Convert to compressed read-only DMG
 echo "Creating final compressed DMG..."
