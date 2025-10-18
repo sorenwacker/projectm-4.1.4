@@ -38,6 +38,7 @@ projectMSDL::projectMSDL(SDL_GLContext glCtx, const std::string& presetPath)
     , _playlist(projectm_playlist_create(_projectM))
     , _presetsBasePath(presetPath)
     , _favoritesPath(presetPath + "/favorites")
+    , _deletedPath(presetPath + "/deleted")
 {
     projectm_get_window_size(_projectM, &_width, &_height);
     projectm_playlist_set_preset_switched_event_callback(_playlist, &projectMSDL::presetSwitchedEvent, static_cast<void*>(this));
@@ -45,8 +46,10 @@ projectMSDL::projectMSDL(SDL_GLContext glCtx, const std::string& presetPath)
     // Create favorites directory if it doesn't exist
 #if defined _MSC_VER
     _mkdir(_favoritesPath.c_str());
+    _mkdir(_deletedPath.c_str());
 #else
     mkdir(_favoritesPath.c_str(), 0755);
+    mkdir(_deletedPath.c_str(), 0755);
 #endif
 
     // Load presets based on current mode
@@ -163,6 +166,7 @@ void projectMSDL::printKeyboardShortcuts()
     printf("  Y                 - Toggle shuffle\n");
     printf("  F                 - Move preset to/from favorites\n");
     printf("  T                 - Toggle favorites-only mode\n");
+    printf("  CMD+Delete        - Move preset to deleted folder\n");
     printf("  Mouse Scroll      - Change presets\n");
     printf("\nAudio:\n");
     printf("  CMD+I             - Cycle audio input devices\n");
@@ -287,6 +291,49 @@ void projectMSDL::movePresetFromFavorites()
     else
     {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to move preset from favorites");
+    }
+}
+
+void projectMSDL::movePresetToDeleted()
+{
+    if (_presetName.empty())
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "No preset currently loaded");
+        return;
+    }
+
+    // Don't delete if already in deleted folder
+    if (_presetName.find("/deleted/") != std::string::npos)
+    {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Preset is already in deleted folder");
+        return;
+    }
+
+    // Get just the filename from the full path
+    size_t lastSlash = _presetName.find_last_of("/\\");
+    std::string filename = (lastSlash != std::string::npos) ? _presetName.substr(lastSlash + 1) : _presetName;
+
+    // Build destination path
+    std::string destPath = _deletedPath + "/" + filename;
+
+    // Move file using system command (cross-platform)
+#ifdef _WIN32
+    std::string command = "move \"" + _presetName + "\" \"" + destPath + "\"";
+#else
+    std::string command = "mv \"" + _presetName + "\" \"" + destPath + "\"";
+#endif
+
+    int result = system(command.c_str());
+
+    if (result == 0)
+    {
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Moved to deleted: %s", filename.c_str());
+        // Reload playlist to reflect changes
+        reloadPlaylist();
+    }
+    else
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to move preset to deleted");
     }
 }
 
@@ -502,6 +549,15 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
                 projectm_set_preset_locked(_projectM, newValue);
                 UpdateWindowTitle();
                 SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Lock: %s", newValue ? "LOCKED" : "UNLOCKED");
+            }
+            break;
+
+        case SDLK_DELETE:
+        case SDLK_BACKSPACE:
+            if (sdl_mod & KMOD_LGUI || sdl_mod & KMOD_RGUI || sdl_mod & KMOD_LCTRL)
+            {
+                // CMD+Delete: move preset to deleted folder
+                movePresetToDeleted();
             }
             break;
 

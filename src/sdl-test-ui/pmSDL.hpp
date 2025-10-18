@@ -156,6 +156,7 @@ private:
     void movePresetToFavorites();
     void movePresetFromFavorites();
     void toggleFavoritesMode();
+    void movePresetToDeleted();
     void reloadPlaylist();
 
     projectm_handle _projectM{nullptr};
@@ -163,6 +164,7 @@ private:
 
     std::string _presetsBasePath; //!< Base path to presets directory
     std::string _favoritesPath;   //!< Path to favorites subdirectory
+    std::string _deletedPath;     //!< Path to deleted subdirectory
     bool _favoritesOnlyMode{false}; //!< Whether to show only favorites
 
     SDL_Window* _sdlWindow{nullptr};
