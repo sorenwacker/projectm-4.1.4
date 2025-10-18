@@ -47,7 +47,7 @@ Control how long each preset displays before automatically switching to the next
 - Party mode: Press `0` for random unpredictable timing
 - Meditation/focus: Press `9` for long 2-minute displays
 
-**Default**: 10 seconds (configurable in config.inp)
+**Default**: 30 seconds (configurable in config.inp)
 
 ### 🎵 Time Scale Control (Slow Motion / Fast Forward)
 
