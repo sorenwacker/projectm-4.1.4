@@ -36,10 +36,21 @@ projectMSDL::projectMSDL(SDL_GLContext glCtx, const std::string& presetPath)
     : _openGlContext(glCtx)
     , _projectM(projectm_create())
     , _playlist(projectm_playlist_create(_projectM))
+    , _presetsBasePath(presetPath)
+    , _favoritesPath(presetPath + "/favorites")
 {
     projectm_get_window_size(_projectM, &_width, &_height);
     projectm_playlist_set_preset_switched_event_callback(_playlist, &projectMSDL::presetSwitchedEvent, static_cast<void*>(this));
-    projectm_playlist_add_path(_playlist, presetPath.c_str(), true, false);
+
+    // Create favorites directory if it doesn't exist
+#if defined _MSC_VER
+    _mkdir(_favoritesPath.c_str());
+#else
+    mkdir(_favoritesPath.c_str(), 0755);
+#endif
+
+    // Load presets based on current mode
+    reloadPlaylist();
     projectm_playlist_set_shuffle(_playlist, _shuffle);
 }
 
@@ -150,7 +161,8 @@ void projectMSDL::printKeyboardShortcuts()
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  R                 - Random preset");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  SPACE             - Lock/unlock preset");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  Y                 - Toggle shuffle");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  F                 - Copy preset to favorites");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  F                 - Move preset to/from favorites");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  T                 - Toggle favorites-only mode");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  Mouse Scroll      - Change presets");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nAudio:");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+I             - Cycle audio input devices");
@@ -169,11 +181,41 @@ void projectMSDL::printKeyboardShortcuts()
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "========================================\n");
 }
 
-void projectMSDL::copyPresetToFavorites()
+void projectMSDL::reloadPlaylist()
+{
+    // Clear current playlist
+    projectm_playlist_clear(_playlist);
+
+    // Load presets based on mode
+    const char* pathToLoad = _favoritesOnlyMode ? _favoritesPath.c_str() : _presetsBasePath.c_str();
+    projectm_playlist_add_path(_playlist, pathToLoad, true, false);
+
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Loaded %d presets from %s",
+                projectm_playlist_size(_playlist),
+                _favoritesOnlyMode ? "favorites" : "all presets");
+}
+
+void projectMSDL::toggleFavoritesMode()
+{
+    _favoritesOnlyMode = !_favoritesOnlyMode;
+    reloadPlaylist();
+
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Favorites-Only Mode: %s", _favoritesOnlyMode ? "ON" : "OFF");
+    UpdateWindowTitle();
+}
+
+void projectMSDL::movePresetToFavorites()
 {
     if (_presetName.empty())
     {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "No preset currently loaded");
+        return;
+    }
+
+    // Check if preset is already in favorites
+    if (_presetName.find("/favorites/") != std::string::npos)
+    {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Preset is already in favorites");
         return;
     }
 
@@ -182,20 +224,76 @@ void projectMSDL::copyPresetToFavorites()
     std::string filename = (lastSlash != std::string::npos) ? _presetName.substr(lastSlash + 1) : _presetName;
 
     // Build destination path
-    std::string destPath = "/Users/sdrwacker/SynologyDrive/Dokumente/projectM-favorites/" + filename;
+    std::string destPath = _favoritesPath + "/" + filename;
 
-    // Copy file using system command
-    std::string command = "cp \"" + _presetName + "\" \"" + destPath + "\"";
+    // Move file using system command (cross-platform)
+#ifdef _WIN32
+    std::string command = "move \"" + _presetName + "\" \"" + destPath + "\"";
+#else
+    std::string command = "mv \"" + _presetName + "\" \"" + destPath + "\"";
+#endif
+
     int result = system(command.c_str());
 
     if (result == 0)
     {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Copied to favorites: %s", filename.c_str());
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Moved to favorites: %s", filename.c_str());
+        // Reload playlist to reflect changes
+        reloadPlaylist();
     }
     else
     {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to copy preset to favorites");
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to move preset to favorites");
     }
+}
+
+void projectMSDL::movePresetFromFavorites()
+{
+    if (_presetName.empty())
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "No preset currently loaded");
+        return;
+    }
+
+    // Check if preset is in favorites
+    if (_presetName.find("/favorites/") == std::string::npos)
+    {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Preset is not in favorites");
+        return;
+    }
+
+    // Get just the filename from the full path
+    size_t lastSlash = _presetName.find_last_of("/\\");
+    std::string filename = (lastSlash != std::string::npos) ? _presetName.substr(lastSlash + 1) : _presetName;
+
+    // Build destination path (back to main presets folder)
+    std::string destPath = _presetsBasePath + "/" + filename;
+
+    // Move file using system command (cross-platform)
+#ifdef _WIN32
+    std::string command = "move \"" + _presetName + "\" \"" + destPath + "\"";
+#else
+    std::string command = "mv \"" + _presetName + "\" \"" + destPath + "\"";
+#endif
+
+    int result = system(command.c_str());
+
+    if (result == 0)
+    {
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Moved from favorites: %s", filename.c_str());
+        // Reload playlist to reflect changes
+        reloadPlaylist();
+    }
+    else
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to move preset from favorites");
+    }
+}
+
+void projectMSDL::copyPresetToFavorites()
+{
+    // Kept for backward compatibility, but now just calls movePresetToFavorites
+    movePresetToFavorites();
 }
 
 void projectMSDL::scrollHandler(SDL_Event* sdl_evt)
@@ -315,9 +413,21 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
             }
             else
             {
-                // f without modifier: copy preset to favorites
-                copyPresetToFavorites();
+                // f without modifier: move preset to/from favorites
+                if (_presetName.find("/favorites/") != std::string::npos)
+                {
+                    movePresetFromFavorites();
+                }
+                else
+                {
+                    movePresetToFavorites();
+                }
             }
+            break;
+
+        case SDLK_t:
+            // t: toggle favorites-only mode
+            toggleFavoritesMode();
             break;
 
         case SDLK_r:
@@ -629,6 +739,10 @@ void projectMSDL::UpdateWindowTitle()
     if (projectm_get_preset_locked(_projectM))
     {
         title.append(" [locked]");
+    }
+    if (_favoritesOnlyMode)
+    {
+        title.append(" [favorites]");
     }
     SDL_SetWindowTitle(_sdlWindow, title.c_str());
 }

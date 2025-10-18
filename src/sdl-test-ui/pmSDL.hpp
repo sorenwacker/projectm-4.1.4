@@ -153,9 +153,17 @@ private:
     void keyHandler(SDL_Event*);
     void printKeyboardShortcuts();
     void copyPresetToFavorites();
+    void movePresetToFavorites();
+    void movePresetFromFavorites();
+    void toggleFavoritesMode();
+    void reloadPlaylist();
 
     projectm_handle _projectM{nullptr};
     projectm_playlist_handle _playlist{nullptr};
+
+    std::string _presetsBasePath; //!< Base path to presets directory
+    std::string _favoritesPath;   //!< Path to favorites subdirectory
+    bool _favoritesOnlyMode{false}; //!< Whether to show only favorites
 
     SDL_Window* _sdlWindow{nullptr};
     bool _isFullScreen{false};
