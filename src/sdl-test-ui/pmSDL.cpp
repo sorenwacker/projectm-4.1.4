@@ -31,12 +31,16 @@
 #include "pmSDL.hpp"
 
 #include <vector>
+#include <fstream>
+
+// Unix-specific headers for terminal raw mode (not available on Windows)
+#ifndef _WIN32
 #include <unistd.h>
 #include <sys/select.h>
 #include <termios.h>
-#include <fstream>
 
 static struct termios orig_termios;
+#endif
 
 projectMSDL::projectMSDL(SDL_GLContext glCtx, const std::string& presetPath)
     : _openGlContext(glCtx)
@@ -197,6 +201,7 @@ void projectMSDL::printKeyboardShortcuts()
 
 void projectMSDL::setTerminalMode()
 {
+#ifndef _WIN32
     // Get current terminal settings
     tcgetattr(STDIN_FILENO, &orig_termios);
 
@@ -206,12 +211,15 @@ void projectMSDL::setTerminalMode()
     raw.c_cc[VMIN] = 0;  // Non-blocking read
     raw.c_cc[VTIME] = 0;
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+#endif
 }
 
 void projectMSDL::restoreTerminalMode()
 {
+#ifndef _WIN32
     // Restore original terminal settings
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+#endif
 }
 
 void projectMSDL::printTerminalHelp()
@@ -261,6 +269,7 @@ void projectMSDL::printTerminalHelp()
 
 void projectMSDL::processTerminalCommand()
 {
+#ifndef _WIN32
     // Read a single character (non-blocking)
     char c;
     ssize_t n = read(STDIN_FILENO, &c, 1);
@@ -522,6 +531,7 @@ void projectMSDL::processTerminalCommand()
             // Ignore unknown keys silently
             break;
     }
+#endif
 }
 
 void projectMSDL::reloadPlaylist()
