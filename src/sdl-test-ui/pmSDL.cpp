@@ -153,32 +153,32 @@ void projectMSDL::toggleFullScreen()
 
 void projectMSDL::printKeyboardShortcuts()
 {
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\n========================================");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "projectM Keyboard Shortcuts");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "========================================");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nPresets:");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  LEFT/RIGHT Arrow  - Navigate presets");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  R                 - Random preset");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  SPACE             - Lock/unlock preset");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  Y                 - Toggle shuffle");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  F                 - Move preset to/from favorites");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  T                 - Toggle favorites-only mode");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  Mouse Scroll      - Change presets");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nAudio:");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+I             - Cycle audio input devices");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+UP/DOWN       - Adjust beat sensitivity");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nDisplay:");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+F             - Toggle fullscreen");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+M             - Change monitor");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+S             - Stretch across monitors");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  A                 - Toggle aspect correction");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nTime Control:");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  UP/DOWN Arrow     - Adjust time scale (0.01x - 2.0x, adaptive increments)");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  S                 - Toggle slow motion (0.1x/1.0x)");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nOther:");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  H                 - Show this help");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+Q             - Quit");
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "========================================\n");
+    printf("\n========================================\n");
+    printf("projectM Keyboard Shortcuts\n");
+    printf("========================================\n");
+    printf("\nPresets:\n");
+    printf("  LEFT/RIGHT Arrow  - Navigate presets\n");
+    printf("  R                 - Random preset\n");
+    printf("  SPACE             - Lock/unlock preset\n");
+    printf("  Y                 - Toggle shuffle\n");
+    printf("  F                 - Move preset to/from favorites\n");
+    printf("  T                 - Toggle favorites-only mode\n");
+    printf("  Mouse Scroll      - Change presets\n");
+    printf("\nAudio:\n");
+    printf("  CMD+I             - Cycle audio input devices\n");
+    printf("  CMD+UP/DOWN       - Adjust beat sensitivity\n");
+    printf("\nDisplay:\n");
+    printf("  CMD+F             - Toggle fullscreen\n");
+    printf("  CMD+M             - Change monitor\n");
+    printf("  CMD+S             - Stretch across monitors\n");
+    printf("  A                 - Toggle aspect correction\n");
+    printf("\nTime Control:\n");
+    printf("  UP/DOWN Arrow     - Adjust time scale (0.01x - 2.0x, adaptive increments)\n");
+    printf("  S                 - Toggle slow motion (0.1x/1.0x)\n");
+    printf("\nOther:\n");
+    printf("  H                 - Show this help\n");
+    printf("  CMD+Q             - Quit\n");
+    printf("========================================\n\n");
 }
 
 void projectMSDL::reloadPlaylist()
