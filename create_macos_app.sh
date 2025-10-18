@@ -115,6 +115,8 @@ echo "Press H for help menu"
 echo "Press CMD+Q to quit"
 echo ""
 
+# Change to Resources directory so config.inp can find presets/
+cd "${RESOURCES_DIR}"
 "${DIR}/projectM-bin"
 
 echo ""
