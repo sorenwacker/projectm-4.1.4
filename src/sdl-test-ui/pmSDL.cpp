@@ -150,6 +150,7 @@ void projectMSDL::printKeyboardShortcuts()
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  R                 - Random preset");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  SPACE             - Lock/unlock preset");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  Y                 - Toggle shuffle");
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  F                 - Copy preset to favorites");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  Mouse Scroll      - Change presets");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "\nAudio:");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+I             - Cycle audio input devices");
@@ -166,6 +167,35 @@ void projectMSDL::printKeyboardShortcuts()
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  H                 - Show this help");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  CMD+Q             - Quit");
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "========================================\n");
+}
+
+void projectMSDL::copyPresetToFavorites()
+{
+    if (_presetName.empty())
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "No preset currently loaded");
+        return;
+    }
+
+    // Get just the filename from the full path
+    size_t lastSlash = _presetName.find_last_of("/\\");
+    std::string filename = (lastSlash != std::string::npos) ? _presetName.substr(lastSlash + 1) : _presetName;
+
+    // Build destination path
+    std::string destPath = "/Users/sdrwacker/SynologyDrive/Dokumente/projectM-favorites/" + filename;
+
+    // Copy file using system command
+    std::string command = "cp \"" + _presetName + "\" \"" + destPath + "\"";
+    int result = system(command.c_str());
+
+    if (result == 0)
+    {
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Copied to favorites: %s", filename.c_str());
+    }
+    else
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to copy preset to favorites");
+    }
 }
 
 void projectMSDL::scrollHandler(SDL_Event* sdl_evt)
@@ -282,6 +312,11 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
 #endif
                 this->stretch = false; // if we are toggling fullscreen, ensure we disable monitor stretching.
                 return;                // handled
+            }
+            else
+            {
+                // f without modifier: copy preset to favorites
+                copyPresetToFavorites();
             }
             break;
 

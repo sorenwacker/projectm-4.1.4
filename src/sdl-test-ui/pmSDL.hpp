@@ -152,6 +152,7 @@ private:
     void scrollHandler(SDL_Event*);
     void keyHandler(SDL_Event*);
     void printKeyboardShortcuts();
+    void copyPresetToFavorites();
 
     projectm_handle _projectM{nullptr};
     projectm_playlist_handle _playlist{nullptr};
