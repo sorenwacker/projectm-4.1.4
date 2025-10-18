@@ -183,6 +183,18 @@ float projectm_get_beat_sensitivity(projectm_handle instance)
     return projectMInstance->GetBeatSensitivity();
 }
 
+void projectm_set_time_scale(projectm_handle instance, float scale)
+{
+    auto projectMInstance = handle_to_instance(instance);
+    projectMInstance->SetTimeScale(scale);
+}
+
+float projectm_get_time_scale(projectm_handle instance)
+{
+    auto projectMInstance = handle_to_instance(instance);
+    return projectMInstance->GetTimeScale();
+}
+
 double projectm_get_hard_cut_duration(projectm_handle instance)
 {
     auto projectMInstance = handle_to_instance(instance);

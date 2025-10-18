@@ -2,7 +2,7 @@
 
 #include "ConfigFile.h"
 
-#include <SDL2/SDL_hints.h>
+#include <SDL_hints.h>
 
 #include <chrono>
 #include <cmath>

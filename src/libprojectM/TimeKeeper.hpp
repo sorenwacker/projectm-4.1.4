@@ -81,6 +81,16 @@ public:
         m_easterEgg = value;
     }
 
+    inline void SetTimeScale(float scale)
+    {
+        m_timeScale = scale;
+    }
+
+    inline auto GetTimeScale() const -> float
+    {
+        return m_timeScale;
+    }
+
     inline auto SecondsSinceLastFrame() const -> double
     {
         return m_secondsSinceLastFrame;
@@ -96,6 +106,7 @@ private:
     double m_secondsSinceLastFrame{};
 
     double m_easterEgg{};
+    float m_timeScale{1.0f};
 
     double m_presetDuration{};
     double m_presetDurationA{};
@@ -103,7 +114,9 @@ private:
     double m_softCutDuration{};
     double m_hardCutDuration{};
 
-    double m_currentTime{};
+    double m_currentTime{};  // Scaled time for animations
+    double m_realTime{};  // Unscaled time for preset switching
+    double m_lastRealTime{};
     double m_presetTimeA{};
     double m_presetTimeB{};
 
