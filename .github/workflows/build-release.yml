@@ -172,6 +172,9 @@ jobs:
 
     - name: Create App Bundle
       run: |
+        # Copy config to root for the script
+        cp src/sdl-test-ui/config.inp . || echo "Config already in root"
+
         # Use the create_macos_app.sh script
         chmod +x create_macos_app.sh
         ./create_macos_app.sh

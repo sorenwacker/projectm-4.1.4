@@ -33,21 +33,26 @@ else
     exit 1
 fi
 
-# Copy presets from Homebrew installation
+# Copy presets from repository or Homebrew installation
 echo "Copying presets..."
-HOMEBREW_PRESETS="/opt/homebrew/Cellar/projectm/3.1.12/share/projectM/presets"
-if [ -d "${HOMEBREW_PRESETS}" ]; then
-    cp -R "${HOMEBREW_PRESETS}" "${RESOURCES_DIR}/presets"
+if [ -d "presets" ]; then
+    # Use presets from repository (preferred)
+    cp -R presets "${RESOURCES_DIR}/"
+    echo "Copied presets from repository"
+elif [ -d "/opt/homebrew/Cellar/projectm/3.1.12/share/projectM/presets" ]; then
+    # Fallback to Homebrew if available
+    cp -R "/opt/homebrew/Cellar/projectm/3.1.12/share/projectM/presets" "${RESOURCES_DIR}/presets"
     echo "Copied presets from Homebrew installation"
+    # Create favorites and deleted folders
+    mkdir -p "${RESOURCES_DIR}/presets/favorites"
+    mkdir -p "${RESOURCES_DIR}/presets/deleted"
 else
-    echo "Warning: Homebrew presets not found at ${HOMEBREW_PRESETS}"
+    echo "Warning: No presets found"
     echo "Creating empty presets directory..."
     mkdir -p "${RESOURCES_DIR}/presets"
+    mkdir -p "${RESOURCES_DIR}/presets/favorites"
+    mkdir -p "${RESOURCES_DIR}/presets/deleted"
 fi
-
-# Create favorites folder
-echo "Creating favorites folder..."
-mkdir -p "${RESOURCES_DIR}/presets/favorites"
 
 # Copy config if it exists
 if [ -f "config.inp" ]; then
