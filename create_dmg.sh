@@ -6,7 +6,8 @@ set -e  # Exit on error
 APP_NAME="projectM"
 APP_BUNDLE="${APP_NAME}.app"
 DMG_NAME="${APP_NAME}-v4.1.4-macOS.dmg"
-DMG_TEMP="temp_dmg"
+DMG_TEMP="${APP_NAME}_dmg_temp"
+DMG_VOLUME_NAME="projectM v4.1.4"
 
 echo "Creating DMG installer for ${APP_NAME}..."
 
@@ -19,6 +20,7 @@ fi
 # Clean up old DMG and temp folder
 rm -rf "${DMG_TEMP}"
 rm -f "${DMG_NAME}"
+rm -f "${DMG_NAME%.dmg}-temp.dmg"
 
 # Create temporary directory
 echo "Creating temporary directory..."
@@ -79,17 +81,77 @@ if [ -f "FEATURES.md" ]; then
     cp FEATURES.md "${DMG_TEMP}/"
 fi
 
-# Create DMG
-echo "Creating DMG..."
-hdiutil create -volname "${APP_NAME}" -srcfolder "${DMG_TEMP}" -ov -format UDZO "${DMG_NAME}"
+# Create temporary DMG
+echo "Creating temporary DMG..."
+hdiutil create -volname "${DMG_VOLUME_NAME}" -srcfolder "${DMG_TEMP}" -ov -format UDRW "${DMG_NAME%.dmg}-temp.dmg"
+
+# Mount the DMG
+echo "Mounting DMG for customization..."
+MOUNT_DIR="/Volumes/${DMG_VOLUME_NAME}"
+hdiutil attach "${DMG_NAME%.dmg}-temp.dmg" -mountpoint "${MOUNT_DIR}"
+
+# Wait for mount
+sleep 2
+
+# Set custom icon positions and window properties using AppleScript
+echo "Setting window layout..."
+osascript <<EOF
+tell application "Finder"
+    tell disk "${DMG_VOLUME_NAME}"
+        open
+        set current view of container window to icon view
+        set toolbar visible of container window to false
+        set statusbar visible of container window to false
+        set the bounds of container window to {100, 100, 740, 480}
+        set viewOptions to the icon view options of container window
+        set arrangement of viewOptions to not arranged
+        set icon size of viewOptions to 128
+        set background color of viewOptions to {255, 255, 255}
+
+        -- Position app icon on the left
+        set position of item "${APP_BUNDLE}" of container window to {160, 180}
+
+        -- Position Applications symlink on the right
+        set position of item "Applications" of container window to {480, 180}
+
+        -- Hide other files
+        try
+            set position of item "README.txt" of container window to {160, 360}
+        end try
+        try
+            set position of item "FEATURES.md" of container window to {320, 360}
+        end try
+
+        close
+        open
+        update without registering applications
+        delay 2
+    end tell
+end tell
+EOF
+
+# Sync and unmount
+sync
+echo "Unmounting DMG..."
+hdiutil detach "${MOUNT_DIR}"
+
+# Convert to compressed read-only DMG
+echo "Creating final compressed DMG..."
+hdiutil convert "${DMG_NAME%.dmg}-temp.dmg" -format UDZO -o "${DMG_NAME}"
 
 # Clean up
 echo "Cleaning up..."
 rm -rf "${DMG_TEMP}"
+rm -f "${DMG_NAME%.dmg}-temp.dmg"
 
 echo ""
 echo "✅ DMG created successfully!"
 echo "📦 Location: ${DMG_NAME}"
+echo ""
+echo "Features:"
+echo "  - Drag & drop installation interface"
+echo "  - App positioned on left, Applications on right"
+echo "  - README and documentation included"
 echo ""
 echo "To distribute:"
 echo "  The DMG file is ready for distribution"
