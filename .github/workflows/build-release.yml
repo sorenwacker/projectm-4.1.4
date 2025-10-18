@@ -1,0 +1,257 @@
+name: Build Multi-Platform Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    name: Build Linux (x86_64)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libsdl2-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          libpulse-dev \
+          libasound2-dev \
+          ninja-build
+
+    - name: Download presets
+      run: |
+        mkdir -p presets
+        # Using a small preset collection for CI builds
+        # Users can download full preset packs separately
+        echo "Presets will be downloaded separately by users" > presets/README.txt
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/usr/local
+
+    - name: Build
+      run: cmake --build build -j$(nproc)
+
+    - name: Create package
+      run: |
+        mkdir -p package/projectM
+        cp build/src/sdl-test-ui/projectM-Test-UI package/projectM/projectM || \
+        cp build/src/sdl-test-ui/projectMSDL package/projectM/projectM || true
+        cp -r src/sdl-test-ui/config.inp package/projectM/
+        cp FEATURES.md package/projectM/
+        cp README.md package/projectM/ || echo "# projectM v4.1.4 Custom" > package/projectM/README.md
+        mkdir -p package/projectM/presets
+        echo "Download presets from projectM website" > package/projectM/presets/README.txt
+
+        cd package
+        tar -czf projectM-v4.1.4-Linux-x86_64.tar.gz projectM
+        mv projectM-v4.1.4-Linux-x86_64.tar.gz ..
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: projectM-Linux-x86_64
+        path: projectM-v4.1.4-Linux-x86_64.tar.gz
+
+  build-windows:
+    name: Build Windows (x86_64)
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Install dependencies with vcpkg
+      run: |
+        vcpkg install sdl2:x64-windows
+        vcpkg integrate install
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -G "Visual Studio 17 2022" -A x64 `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+    - name: Build
+      run: cmake --build build --config Release -j $env:NUMBER_OF_PROCESSORS
+
+    - name: Create package
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force -Path package\projectM
+
+        # Find and copy the executable
+        Get-ChildItem -Path build -Recurse -Filter "*.exe" |
+          Where-Object { $_.Name -match "projectM" -and $_.DirectoryName -match "Release" } |
+          Select-Object -First 1 |
+          Copy-Item -Destination package\projectM\projectM.exe
+
+        # Copy config and docs
+        Copy-Item src\sdl-test-ui\config.inp package\projectM\
+        Copy-Item FEATURES.md package\projectM\
+        if (Test-Path README.md) { Copy-Item README.md package\projectM\ }
+
+        # Create presets directory
+        New-Item -ItemType Directory -Force -Path package\projectM\presets
+        "Download presets from projectM website" | Out-File package\projectM\presets\README.txt
+
+        # Create ZIP
+        Compress-Archive -Path package\projectM -DestinationPath projectM-v4.1.4-Windows-x86_64.zip
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: projectM-Windows-x86_64
+        path: projectM-v4.1.4-Windows-x86_64.zip
+
+  build-macos:
+    name: Build macOS (${{ matrix.arch }})
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            cmake_arch: arm64
+          - arch: x86_64
+            cmake_arch: x86_64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        brew install sdl2 cmake ninja
+
+    - name: Download presets
+      run: |
+        mkdir -p presets
+        # Check if Homebrew projectM is installed
+        if [ -d "/opt/homebrew/Cellar/projectm" ]; then
+          PRESET_PATH=$(find /opt/homebrew/Cellar/projectm -name "presets" -type d | head -1)
+          if [ -n "$PRESET_PATH" ]; then
+            cp -r "$PRESET_PATH"/* presets/ || true
+          fi
+        fi
+
+        # Fallback if no presets found
+        if [ ! "$(ls -A presets)" ]; then
+          echo "Download presets from projectM website" > presets/README.txt
+        fi
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_OSX_ARCHITECTURES=${{ matrix.cmake_arch }} \
+          -DCMAKE_INSTALL_PREFIX=/usr/local
+
+    - name: Build
+      run: cmake --build build -j$(sysctl -n hw.ncpu)
+
+    - name: Create App Bundle
+      run: |
+        # Use the create_macos_app.sh script
+        chmod +x create_macos_app.sh
+        ./create_macos_app.sh
+
+    - name: Create DMG
+      run: |
+        # Create a simple DMG
+        mkdir -p dmg-staging
+        cp -R projectM.app dmg-staging/
+        ln -s /Applications dmg-staging/Applications
+
+        hdiutil create -volname "projectM v4.1.4" \
+          -srcfolder dmg-staging \
+          -ov \
+          -format UDZO \
+          projectM-v4.1.4-macOS-${{ matrix.arch }}.dmg
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: projectM-macOS-${{ matrix.arch }}
+        path: projectM-v4.1.4-macOS-${{ matrix.arch }}.dmg
+
+  create-release:
+    name: Create Release
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Display structure
+      run: ls -R artifacts
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          artifacts/projectM-Linux-x86_64/projectM-v4.1.4-Linux-x86_64.tar.gz
+          artifacts/projectM-Windows-x86_64/projectM-v4.1.4-Windows-x86_64.zip
+          artifacts/projectM-macOS-arm64/projectM-v4.1.4-macOS-arm64.dmg
+          artifacts/projectM-macOS-x86_64/projectM-v4.1.4-macOS-x86_64.dmg
+        body: |
+          # projectM v4.1.4 - Custom Features Edition
+
+          Multi-platform music visualizer with enhanced Terminal command center and advanced preset management.
+
+          ## Download for Your Platform
+
+          - **macOS Apple Silicon (M1/M2/M3)**: `projectM-v4.1.4-macOS-arm64.dmg`
+          - **macOS Intel**: `projectM-v4.1.4-macOS-x86_64.dmg`
+          - **Windows 64-bit**: `projectM-v4.1.4-Windows-x86_64.zip`
+          - **Linux 64-bit**: `projectM-v4.1.4-Linux-x86_64.tar.gz`
+
+          ## New Features
+
+          - Terminal command center with instant single-keypress control
+          - Preset duration control (keys 1-9 + random mode)
+          - Time scale control (0.01x - 2.0x)
+          - Beat sensitivity adjustment (0.0 - 2.0)
+          - Favorites system with toggle mode
+          - Safe delete with recovery
+
+          See FEATURES.md in the package for complete documentation.
+
+          ## Notes
+
+          - **Presets**: Some packages include a preset collection. You can download additional presets from the [projectM website](https://github.com/projectM-visualizer/projectm).
+          - **macOS**: First launch may require right-click > Open to bypass Gatekeeper
+          - **Windows**: May need to install Visual C++ Redistributable if not already present
+
+          Built with [Claude Code](https://claude.com/claude-code)
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
