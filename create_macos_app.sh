@@ -101,7 +101,7 @@ cat > "${MACOS_DIR}/${APP_NAME}-launcher" << 'EOF'
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 RESOURCES_DIR="${DIR}/../Resources"
 export DATADIR_PATH="${RESOURCES_DIR}"
-exec "${DIR}/projectM" "$@"
+exec "${DIR}/projectM-bin" "$@"
 EOF
 
 # Make launcher executable and rename
