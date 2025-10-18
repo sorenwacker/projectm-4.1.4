@@ -120,12 +120,12 @@ tell application "Finder"
 
         delay 1
 
-        -- Position documentation files
+        -- Hide documentation files (move them off-screen)
         try
-            set position of item "README.txt" of container window to {160, 340}
+            set position of item "README.txt" of container window to {1000, 1000}
         end try
         try
-            set position of item "FEATURES.md" of container window to {320, 340}
+            set position of item "FEATURES.md" of container window to {1000, 1000}
         end try
 
         -- Close and reopen to save settings
