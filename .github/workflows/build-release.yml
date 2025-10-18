@@ -127,14 +127,16 @@ jobs:
 
   build-macos:
     name: Build macOS (${{ matrix.arch }})
-    runs-on: macos-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
         include:
           - arch: arm64
             cmake_arch: arm64
+            runner: macos-latest
           - arch: x86_64
             cmake_arch: x86_64
+            runner: macos-13
 
     steps:
     - name: Checkout code
@@ -166,7 +168,6 @@ jobs:
       run: |
         cmake -B build -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_OSX_ARCHITECTURES=${{ matrix.cmake_arch }} \
           -DCMAKE_INSTALL_PREFIX=/usr/local \
           -DENABLE_SDL_UI=ON
 
