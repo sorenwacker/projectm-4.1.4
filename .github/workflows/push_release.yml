@@ -14,38 +14,42 @@ jobs:
         uses: tomchv/wait-my-workflow@v1.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: 'linux_build'
+          checkName: 'Shared Library'
           ref: ${{ github.sha }}
           intervalSeconds: 30
           timeoutSeconds: 3600
+          workflow: build_linux.yml
 
       - name: Wait On Emscripten Build
         continue-on-error: true
         uses: tomchv/wait-my-workflow@v1.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: 'emscripten_build'
+          checkName: 'Static Library'
           ref: ${{ github.sha }}
           intervalSeconds: 30
           timeoutSeconds: 3600
+          workflow: build_emscripten.yml
 
       - name: Wait On macOs Build
         uses: tomchv/wait-my-workflow@v1.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: 'osx_build'
+          checkName: 'Shared Library'
           ref: ${{ github.sha }}
           intervalSeconds: 30
           timeoutSeconds: 3600
+          workflow: build_osx.yml
 
       - name: Wait On Windows Build
         uses: tomchv/wait-my-workflow@v1.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: 'windows_build'
+          checkName: 'Shared Library'
           ref: ${{ github.sha }}
           intervalSeconds: 60
           timeoutSeconds: 3600
+          workflow: build_windows.yml
 
       - name: Download Artifacts From Linux Build
         id: download-linux-artifact
