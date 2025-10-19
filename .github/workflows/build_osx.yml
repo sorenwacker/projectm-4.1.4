@@ -25,7 +25,7 @@ jobs:
         run: brew install sdl2 ninja googletest boost
 
       - name: Configure Build
-        run: cmake -G "Ninja Multi-Config" -S "${{ github.workspace }}" -B "${{ github.workspace }}/cmake-build" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" -DCMAKE_VERBOSE_MAKEFILE=YES -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=YES -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 -DCMAKE_OSX_ARCHITECTURES=x86_64
+        run: cmake -G "Ninja Multi-Config" -S "${{ github.workspace }}" -B "${{ github.workspace }}/cmake-build" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" -DCMAKE_VERBOSE_MAKEFILE=YES -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=YES -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
 
       - name: Build Debug
         run: cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --parallel
@@ -40,6 +40,29 @@ jobs:
         run: |
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target install
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target install
+
+      - name: Create macOS App Bundle
+        run: |
+          cp -r cmake-build build
+          chmod +x create_macos_app.sh
+          ./create_macos_app.sh
+
+      - name: Verify Universal Binary
+        run: |
+          echo "Checking architectures in binary:"
+          lipo -info projectM.app/Contents/MacOS/projectM-bin
+          file projectM.app/Contents/MacOS/projectM-bin
+
+      - name: Create DMG Installer
+        run: |
+          chmod +x create_dmg.sh
+          ./create_dmg.sh
+
+      - name: Upload DMG Artifact
+        uses: actions/upload-artifact@v4
+        with:
+            name: projectm-osx-dmg-latest
+            path: projectM-v4.1.4-macOS.dmg
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -60,7 +83,7 @@ jobs:
         run: brew install sdl2 ninja googletest boost
 
       - name: Configure Build
-        run: cmake -G "Ninja Multi-Config" -S "${{ github.workspace }}" -B "${{ github.workspace }}/cmake-build" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" -DCMAKE_VERBOSE_MAKEFILE=YES -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=YES -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 -DCMAKE_OSX_ARCHITECTURES=x86_64
+        run: cmake -G "Ninja Multi-Config" -S "${{ github.workspace }}" -B "${{ github.workspace }}/cmake-build" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" -DCMAKE_VERBOSE_MAKEFILE=YES -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=YES -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
 
       - name: Build Debug
         run: cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --parallel

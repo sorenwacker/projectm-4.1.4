@@ -58,8 +58,8 @@ jobs:
           tar -czvf projectm-linux-x64.tar.gz *
           mv projectm-linux-x64.tar.gz ${{ github.workspace }}/projectm-linux-x64-${{ env.TAG }}.tar.gz
 
-      - name: Download Artifacts From macOS Build
-        id: download-osx-artifact
+      - name: Download DMG From macOS Build
+        id: download-osx-dmg
         uses: dawidd6/action-download-artifact@v6
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
@@ -68,13 +68,11 @@ jobs:
           path: artifacts
           commit: ${{ github.sha }}
           allow_forks: false
-          name: projectm-osx-shared-latest
+          name: projectm-osx-dmg-latest
 
-      - name: Create macOs Package
+      - name: Prepare macOS DMG for Release
         run: |
-          cd ${{ github.workspace }}/artifacts/projectm-osx-shared-latest
-          tar -czvf projectm-osx-x64.tar.gz *
-          mv projectm-osx-x64.tar.gz ${{ github.workspace }}/projectm-osx-x64-${{ env.TAG }}.tar.gz
+          mv ${{ github.workspace }}/artifacts/projectM-v4.1.4-macOS.dmg ${{ github.workspace }}/projectM-macOS-Universal-${{ env.TAG }}.dmg
 
       - name: Download Artifacts From Windows Build
         id: download-windows-artifact
@@ -115,6 +113,6 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             projectm-linux-x64-${{ env.TAG }}.tar.gz
-            projectm-osx-x64-${{ env.TAG }}.tar.gz
+            projectM-macOS-Universal-${{ env.TAG }}.dmg
             projectm-windows-x64-${{ env.TAG }}.zip
             
