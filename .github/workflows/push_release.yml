@@ -20,6 +20,7 @@ jobs:
           timeoutSeconds: 3600
 
       - name: Wait On Emscripten Build
+        continue-on-error: true
         uses: tomchv/wait-my-workflow@v1.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -66,6 +67,7 @@ jobs:
 
       - name: Download Artifacts From Emscripten Build
         id: download-emscripten-artifact
+        continue-on-error: true
         uses: dawidd6/action-download-artifact@v6
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
@@ -78,6 +80,7 @@ jobs:
           name: projectm-emscripten-static-latest
 
       - name: Create Emscripten Package
+        continue-on-error: true
         run: |
           mv ${{ github.workspace }}/artifacts/projectm-emscripten-static-latest.zip ${{ github.workspace }}/projectm-emscripten-${{ env.TAG }}.zip
 
@@ -135,7 +138,7 @@ jobs:
           #   ${{steps.github_release.outputs.changelog}}
           draft: true
           prerelease: false
-          fail_on_unmatched_files: true
+          fail_on_unmatched_files: false
           files: |
             projectm-linux-x64-${{ env.TAG }}.tar.gz
             projectm-emscripten-${{ env.TAG }}.zip
