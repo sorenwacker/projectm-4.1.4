@@ -10,6 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Extract Tag Name
+        run: |
+          echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          echo "Building release for tag: ${GITHUB_REF#refs/tags/}"
+
       - name: Wait On Linux Build
         uses: tomchv/wait-my-workflow@v1.1.0
         with:
@@ -94,8 +99,8 @@ jobs:
 
       - name: Prepare macOS DMGs for Release
         run: |
-          mv ${{ github.workspace }}/artifacts/projectM-v4.1.4-macOS-Intel.dmg ${{ github.workspace }}/projectM-macOS-Intel-${{ env.TAG }}.dmg
-          mv ${{ github.workspace }}/artifacts/projectM-v4.1.4-macOS-AppleSilicon.dmg ${{ github.workspace }}/projectM-macOS-AppleSilicon-${{ env.TAG }}.dmg
+          mv ${{ github.workspace }}/artifacts/projectm-osx-dmg-intel/projectM-v4.1.4-macOS-Intel.dmg ${{ github.workspace }}/projectM-macOS-Intel-${{ env.TAG }}.dmg
+          mv ${{ github.workspace }}/artifacts/projectm-osx-dmg-arm64/projectM-v4.1.4-macOS-AppleSilicon.dmg ${{ github.workspace }}/projectM-macOS-AppleSilicon-${{ env.TAG }}.dmg
 
       - name: Download Artifacts From Windows Build
         id: download-windows-artifact
