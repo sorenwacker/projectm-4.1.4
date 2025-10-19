@@ -98,7 +98,7 @@ cat > "${CONTENTS_DIR}/Info.plist" << 'EOF'
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
-    <string>10.13</string>
+    <string>10.11</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
