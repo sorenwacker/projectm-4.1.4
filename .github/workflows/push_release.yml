@@ -56,10 +56,11 @@ jobs:
             path: artifacts
             commit: ${{ github.sha }}
             allow_forks: false
+            name: projectm-linux-shared-latest
 
       - name: Create Linux Package
         run: |
-          cd ${{ github.workspace }}/artifacts/projectm-linux-latest
+          cd ${{ github.workspace }}/artifacts/projectm-linux-shared-latest
           tar -czvf projectm-linux-x64.tar.gz *
           mv projectm-linux-x64.tar.gz ${{ github.workspace }}/projectm-linux-x64-${{ env.TAG }}.tar.gz
 
@@ -74,10 +75,11 @@ jobs:
           commit: ${{ github.sha }}
           skip_unpack: true
           allow_forks: false
+          name: projectm-emscripten-static-latest
 
       - name: Create Emscripten Package
         run: |
-          mv ${{ github.workspace }}/artifacts/projectm-emscripten-latest.zip ${{ github.workspace }}/projectm-emscripten-${{ env.TAG }}.zip
+          mv ${{ github.workspace }}/artifacts/projectm-emscripten-static-latest.zip ${{ github.workspace }}/projectm-emscripten-${{ env.TAG }}.zip
 
       - name: Download Artifacts From macOS Build
         id: download-osx-artifact
@@ -89,10 +91,11 @@ jobs:
           path: artifacts
           commit: ${{ github.sha }}
           allow_forks: false
+          name: projectm-osx-shared-latest
 
       - name: Create macOs Package
         run: |
-          cd ${{ github.workspace }}/artifacts/projectm-osx-latest
+          cd ${{ github.workspace }}/artifacts/projectm-osx-shared-latest
           tar -czvf projectm-osx-x64.tar.gz *
           mv projectm-osx-x64.tar.gz ${{ github.workspace }}/projectm-osx-x64-${{ env.TAG }}.tar.gz
 
@@ -107,10 +110,11 @@ jobs:
           commit: ${{ github.sha }}
           skip_unpack: true
           allow_forks: false
+          name: projectm-windows-shared-latest
 
       - name: Create Windows Package
         run: |
-          mv ${{ github.workspace }}/artifacts/projectm-windows-latest.zip ${{ github.workspace }}/projectm-windows-x64-${{ env.TAG }}.zip
+          mv ${{ github.workspace }}/artifacts/projectm-windows-shared-latest.zip ${{ github.workspace }}/projectm-windows-x64-${{ env.TAG }}.zip
 
       - name: Display Ready Packages
         run: |
