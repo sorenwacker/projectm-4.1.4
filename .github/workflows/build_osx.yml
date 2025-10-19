@@ -22,7 +22,7 @@ jobs:
           submodules: 'recursive'
 
       - name: Install Packages
-        run: brew install sdl2 ninja googletest
+        run: brew install sdl2 ninja googletest boost
 
       - name: Configure Build
         run: cmake -G "Ninja Multi-Config" -S "${{ github.workspace }}" -B "${{ github.workspace }}/cmake-build" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" -DCMAKE_VERBOSE_MAKEFILE=YES -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=YES -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 -DCMAKE_OSX_ARCHITECTURES=x86_64
@@ -57,7 +57,7 @@ jobs:
           submodules: 'recursive'
 
       - name: Install Packages
-        run: brew install sdl2 ninja googletest
+        run: brew install sdl2 ninja googletest boost
 
       - name: Configure Build
         run: cmake -G "Ninja Multi-Config" -S "${{ github.workspace }}" -B "${{ github.workspace }}/cmake-build" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" -DCMAKE_VERBOSE_MAKEFILE=YES -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=YES -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11 -DCMAKE_OSX_ARCHITECTURES=x86_64
