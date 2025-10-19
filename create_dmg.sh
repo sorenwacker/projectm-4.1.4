@@ -106,7 +106,7 @@ tell application "Finder"
         set viewOptions to the icon view options of container window
         set arrangement of viewOptions to not arranged
         set icon size of viewOptions to 128
-        set background color of viewOptions to {240, 240, 240}
+        set background color of viewOptions to {65535, 65535, 65535}
         set text size of viewOptions to 14
         set label position of viewOptions to bottom
 

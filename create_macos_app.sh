@@ -94,14 +94,38 @@ cat > "${CONTENTS_DIR}/Info.plist" << 'EOF'
 </plist>
 EOF
 
-# Create a wrapper script to set the data directory
-echo "Creating launcher script..."
-cat > "${MACOS_DIR}/${APP_NAME}-launcher" << 'EOF'
+# Create a helper script that will be run in Terminal
+echo "Creating run script..."
+cat > "${MACOS_DIR}/run.sh" << 'EOF'
 #!/bin/bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 RESOURCES_DIR="${DIR}/../Resources"
 export DATADIR_PATH="${RESOURCES_DIR}"
-exec "${DIR}/projectM-bin" "$@"
+
+echo "========================================"
+echo "projectM Music Visualizer v4.1.4"
+echo "========================================"
+echo ""
+echo "Press H for help menu"
+echo "Press CMD+Q to quit"
+echo ""
+
+"${DIR}/projectM-bin"
+
+echo ""
+echo "projectM exited. Press any key to close this window..."
+read -n 1
+EOF
+
+chmod +x "${MACOS_DIR}/run.sh"
+
+# Create the main launcher that opens Terminal
+echo "Creating launcher script..."
+cat > "${MACOS_DIR}/${APP_NAME}-launcher" << 'EOF'
+#!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+open -a Terminal.app "${DIR}/run.sh"
 EOF
 
 # Make launcher executable and rename
