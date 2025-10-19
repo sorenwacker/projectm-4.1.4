@@ -26,22 +26,38 @@ mkdir -p "${CONTENTS_DIR}/Frameworks"
 
 # Copy executable
 echo "Copying executable..."
-if [ -f "${BUILD_DIR}/src/sdl-test-ui/projectM-Test-UI" ]; then
+# Try Release config first (Ninja Multi-Config), then fall back to no-config path
+if [ -f "${BUILD_DIR}/src/sdl-test-ui/Release/projectM-Test-UI" ]; then
+    cp "${BUILD_DIR}/src/sdl-test-ui/Release/projectM-Test-UI" "${MACOS_DIR}/${APP_NAME}"
+    chmod +x "${MACOS_DIR}/${APP_NAME}"
+elif [ -f "${BUILD_DIR}/src/sdl-test-ui/projectM-Test-UI" ]; then
     cp "${BUILD_DIR}/src/sdl-test-ui/projectM-Test-UI" "${MACOS_DIR}/${APP_NAME}"
     chmod +x "${MACOS_DIR}/${APP_NAME}"
 else
     echo "Error: Executable not found. Please build the project first."
+    echo "Tried:"
+    echo "  ${BUILD_DIR}/src/sdl-test-ui/Release/projectM-Test-UI"
+    echo "  ${BUILD_DIR}/src/sdl-test-ui/projectM-Test-UI"
     exit 1
 fi
 
 # Copy required dylibs
 echo "Copying dynamic libraries..."
 FRAMEWORKS_DIR="${CONTENTS_DIR}/Frameworks"
-if [ -f "${BUILD_DIR}/src/libprojectM/libprojectM-4.4.1.4.dylib" ]; then
+
+# Try Release config first (Ninja Multi-Config), then fall back to no-config path
+if [ -f "${BUILD_DIR}/src/libprojectM/Release/libprojectM-4.4.1.4.dylib" ]; then
+    cp "${BUILD_DIR}/src/libprojectM/Release/libprojectM-4.4.1.4.dylib" "${FRAMEWORKS_DIR}/"
+    ln -sf "libprojectM-4.4.1.4.dylib" "${FRAMEWORKS_DIR}/libprojectM-4.4.dylib"
+elif [ -f "${BUILD_DIR}/src/libprojectM/libprojectM-4.4.1.4.dylib" ]; then
     cp "${BUILD_DIR}/src/libprojectM/libprojectM-4.4.1.4.dylib" "${FRAMEWORKS_DIR}/"
     ln -sf "libprojectM-4.4.1.4.dylib" "${FRAMEWORKS_DIR}/libprojectM-4.4.dylib"
 fi
-if [ -f "${BUILD_DIR}/src/playlist/libprojectM-4-playlist.4.1.4.dylib" ]; then
+
+if [ -f "${BUILD_DIR}/src/playlist/Release/libprojectM-4-playlist.4.1.4.dylib" ]; then
+    cp "${BUILD_DIR}/src/playlist/Release/libprojectM-4-playlist.4.1.4.dylib" "${FRAMEWORKS_DIR}/"
+    ln -sf "libprojectM-4-playlist.4.1.4.dylib" "${FRAMEWORKS_DIR}/libprojectM-4-playlist.4.dylib"
+elif [ -f "${BUILD_DIR}/src/playlist/libprojectM-4-playlist.4.1.4.dylib" ]; then
     cp "${BUILD_DIR}/src/playlist/libprojectM-4-playlist.4.1.4.dylib" "${FRAMEWORKS_DIR}/"
     ln -sf "libprojectM-4-playlist.4.1.4.dylib" "${FRAMEWORKS_DIR}/libprojectM-4-playlist.4.dylib"
 fi
