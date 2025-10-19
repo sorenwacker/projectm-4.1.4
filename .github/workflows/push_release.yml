@@ -48,13 +48,14 @@ jobs:
 
       - name: Download Artifacts From Linux Build
         id: download-linux-artifact
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v6
         with:
             github_token: ${{secrets.GITHUB_TOKEN}}
             workflow: build_linux.yml
             workflow_conclusion: success
             path: artifacts
             commit: ${{ github.sha }}
+            allow_forks: false
 
       - name: Create Linux Package
         run: |
@@ -64,7 +65,7 @@ jobs:
 
       - name: Download Artifacts From Emscripten Build
         id: download-emscripten-artifact
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v6
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
           workflow: build_emscripten.yml
@@ -72,6 +73,7 @@ jobs:
           path: artifacts
           commit: ${{ github.sha }}
           skip_unpack: true
+          allow_forks: false
 
       - name: Create Emscripten Package
         run: |
@@ -79,13 +81,14 @@ jobs:
 
       - name: Download Artifacts From macOS Build
         id: download-osx-artifact
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v6
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
           workflow: build_osx.yml
           workflow_conclusion: success
           path: artifacts
           commit: ${{ github.sha }}
+          allow_forks: false
 
       - name: Create macOs Package
         run: |
@@ -95,7 +98,7 @@ jobs:
 
       - name: Download Artifacts From Windows Build
         id: download-windows-artifact
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v6
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
           workflow: build_windows.yml
@@ -103,6 +106,7 @@ jobs:
           path: artifacts
           commit: ${{ github.sha }}
           skip_unpack: true
+          allow_forks: false
 
       - name: Create Windows Package
         run: |
