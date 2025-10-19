@@ -22,6 +22,7 @@ fi
 echo "Creating bundle structure..."
 mkdir -p "${MACOS_DIR}"
 mkdir -p "${RESOURCES_DIR}"
+mkdir -p "${CONTENTS_DIR}/Frameworks"
 
 # Copy executable
 echo "Copying executable..."
@@ -31,6 +32,18 @@ if [ -f "${BUILD_DIR}/src/sdl-test-ui/projectM-Test-UI" ]; then
 else
     echo "Error: Executable not found. Please build the project first."
     exit 1
+fi
+
+# Copy required dylibs
+echo "Copying dynamic libraries..."
+FRAMEWORKS_DIR="${CONTENTS_DIR}/Frameworks"
+if [ -f "${BUILD_DIR}/src/libprojectM/libprojectM-4.4.1.4.dylib" ]; then
+    cp "${BUILD_DIR}/src/libprojectM/libprojectM-4.4.1.4.dylib" "${FRAMEWORKS_DIR}/"
+    ln -sf "libprojectM-4.4.1.4.dylib" "${FRAMEWORKS_DIR}/libprojectM-4.4.dylib"
+fi
+if [ -f "${BUILD_DIR}/src/playlist/libprojectM-4-playlist.4.1.4.dylib" ]; then
+    cp "${BUILD_DIR}/src/playlist/libprojectM-4-playlist.4.1.4.dylib" "${FRAMEWORKS_DIR}/"
+    ln -sf "libprojectM-4-playlist.4.1.4.dylib" "${FRAMEWORKS_DIR}/libprojectM-4-playlist.4.dylib"
 fi
 
 # Copy presets from Homebrew installation
@@ -133,9 +146,28 @@ chmod +x "${MACOS_DIR}/${APP_NAME}-launcher"
 mv "${MACOS_DIR}/${APP_NAME}" "${MACOS_DIR}/${APP_NAME}-bin"
 mv "${MACOS_DIR}/${APP_NAME}-launcher" "${MACOS_DIR}/${APP_NAME}"
 
-# Fix library paths for the executable
+# Fix library paths for the executable and dylibs
 echo "Fixing library paths..."
 install_name_tool -add_rpath "@executable_path/../Frameworks" "${MACOS_DIR}/${APP_NAME}-bin" 2>/dev/null || true
+
+# Fix inter-library dependencies
+if [ -f "${FRAMEWORKS_DIR}/libprojectM-4-playlist.4.dylib" ]; then
+    install_name_tool -change "@rpath/libprojectM-4.4.dylib" "@rpath/libprojectM-4.4.dylib" "${FRAMEWORKS_DIR}/libprojectM-4-playlist.4.1.4.dylib" 2>/dev/null || true
+    install_name_tool -id "@rpath/libprojectM-4-playlist.4.dylib" "${FRAMEWORKS_DIR}/libprojectM-4-playlist.4.1.4.dylib" 2>/dev/null || true
+fi
+if [ -f "${FRAMEWORKS_DIR}/libprojectM-4.4.dylib" ]; then
+    install_name_tool -id "@rpath/libprojectM-4.4.dylib" "${FRAMEWORKS_DIR}/libprojectM-4.4.1.4.dylib" 2>/dev/null || true
+fi
+
+# Code sign the app (ad-hoc signature)
+echo "Code signing the application..."
+codesign --force --deep --sign - "${APP_BUNDLE}" 2>/dev/null || {
+    echo "Warning: Code signing failed. The app may trigger Gatekeeper warnings."
+}
+
+# Remove quarantine attribute to help with distribution
+echo "Removing quarantine attributes..."
+xattr -cr "${APP_BUNDLE}" 2>/dev/null || true
 
 echo ""
 echo "✅ macOS app bundle created successfully!"
