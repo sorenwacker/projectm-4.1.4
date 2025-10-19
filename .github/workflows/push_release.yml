@@ -20,11 +20,21 @@ jobs:
           timeoutSeconds: 3600
           workflow: build_linux.yml
 
-      - name: Wait On macOs Build
+      - name: Wait On macOS Intel Build
         uses: tomchv/wait-my-workflow@v1.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: 'Shared Library'
+          checkName: 'Intel (x86_64) DMG'
+          ref: ${{ github.sha }}
+          intervalSeconds: 30
+          timeoutSeconds: 3600
+          workflow: build_osx.yml
+
+      - name: Wait On macOS Apple Silicon Build
+        uses: tomchv/wait-my-workflow@v1.1.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: 'Apple Silicon (arm64) DMG'
           ref: ${{ github.sha }}
           intervalSeconds: 30
           timeoutSeconds: 3600
@@ -58,8 +68,8 @@ jobs:
           tar -czvf projectm-linux-x64.tar.gz *
           mv projectm-linux-x64.tar.gz ${{ github.workspace }}/projectm-linux-x64-${{ env.TAG }}.tar.gz
 
-      - name: Download DMG From macOS Build
-        id: download-osx-dmg
+      - name: Download Intel DMG From macOS Build
+        id: download-osx-dmg-intel
         uses: dawidd6/action-download-artifact@v6
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
@@ -68,11 +78,24 @@ jobs:
           path: artifacts
           commit: ${{ github.sha }}
           allow_forks: false
-          name: projectm-osx-dmg-latest
+          name: projectm-osx-dmg-intel
 
-      - name: Prepare macOS DMG for Release
+      - name: Download Apple Silicon DMG From macOS Build
+        id: download-osx-dmg-arm64
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{secrets.GITHUB_TOKEN}}
+          workflow: build_osx.yml
+          workflow_conclusion: success
+          path: artifacts
+          commit: ${{ github.sha }}
+          allow_forks: false
+          name: projectm-osx-dmg-arm64
+
+      - name: Prepare macOS DMGs for Release
         run: |
-          mv ${{ github.workspace }}/artifacts/projectM-v4.1.4-macOS.dmg ${{ github.workspace }}/projectM-macOS-Universal-${{ env.TAG }}.dmg
+          mv ${{ github.workspace }}/artifacts/projectM-v4.1.4-macOS-Intel.dmg ${{ github.workspace }}/projectM-macOS-Intel-${{ env.TAG }}.dmg
+          mv ${{ github.workspace }}/artifacts/projectM-v4.1.4-macOS-AppleSilicon.dmg ${{ github.workspace }}/projectM-macOS-AppleSilicon-${{ env.TAG }}.dmg
 
       - name: Download Artifacts From Windows Build
         id: download-windows-artifact
@@ -113,6 +136,7 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             projectm-linux-x64-${{ env.TAG }}.tar.gz
-            projectM-macOS-Universal-${{ env.TAG }}.dmg
+            projectM-macOS-Intel-${{ env.TAG }}.dmg
+            projectM-macOS-AppleSilicon-${{ env.TAG }}.dmg
             projectm-windows-x64-${{ env.TAG }}.zip
             
