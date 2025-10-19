@@ -59,3 +59,6 @@ src/libprojectM/build/
 # CLion
 cmake-build-*
 .idea
+
+# Claude Code
+.claude/
