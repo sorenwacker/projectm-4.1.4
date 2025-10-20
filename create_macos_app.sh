@@ -4,7 +4,7 @@
 set -e  # Exit on error
 
 APP_NAME="projectM"
-BUILD_DIR="build"
+BUILD_DIR="${BUILD_DIR:-build}"  # Use environment variable or default to "build"
 APP_BUNDLE="${APP_NAME}.app"
 CONTENTS_DIR="${APP_BUNDLE}/Contents"
 MACOS_DIR="${CONTENTS_DIR}/MacOS"

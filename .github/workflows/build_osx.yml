@@ -43,13 +43,8 @@ jobs:
 
       - name: Create macOS App Bundle
         run: |
-          cp -r cmake-build build
-          echo "=== Checking build directory structure ==="
-          find build/src/sdl-test-ui -type f -name "projectM*" || true
-          ls -la build/src/sdl-test-ui/ || true
-          ls -la build/src/sdl-test-ui/Release/ || true
           chmod +x create_macos_app.sh
-          ./create_macos_app.sh
+          BUILD_DIR=cmake-build ./create_macos_app.sh
 
       - name: Create DMG Installer
         run: |
@@ -100,13 +95,8 @@ jobs:
 
       - name: Create macOS App Bundle
         run: |
-          cp -r cmake-build build
-          echo "=== Checking build directory structure ==="
-          find build/src/sdl-test-ui -type f -name "projectM*" || true
-          ls -la build/src/sdl-test-ui/ || true
-          ls -la build/src/sdl-test-ui/Release/ || true
           chmod +x create_macos_app.sh
-          ./create_macos_app.sh
+          BUILD_DIR=cmake-build ./create_macos_app.sh
 
       - name: Create DMG Installer
         run: |
