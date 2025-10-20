@@ -116,11 +116,12 @@ jobs:
           workflow: build_windows.yml
           workflow_conclusion: success
           path: artifacts/windows
-          branch: ${{ github.ref_name }}
+          event: push
+          commit: ${{ github.sha }}
           skip_unpack: true
           allow_forks: false
           name: projectm-windows-shared-latest
-          workflow_search: true
+          workflow_search: false
 
       - name: Create Windows Package
         run: |
