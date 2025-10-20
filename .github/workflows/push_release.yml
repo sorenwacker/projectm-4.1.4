@@ -63,10 +63,11 @@ jobs:
             workflow: build_linux.yml
             workflow_conclusion: success
             path: artifacts/linux
-            branch: ${{ github.ref_name }}
+            event: push
+            commit: ${{ github.sha }}
             allow_forks: false
             name: projectm-linux-shared-latest
-            workflow_search: true
+            workflow_search: false
 
       - name: Create Linux Package
         run: |
@@ -82,10 +83,11 @@ jobs:
           workflow: build_osx.yml
           workflow_conclusion: success
           path: artifacts/macos-intel
-          branch: ${{ github.ref_name }}
+          event: push
+          commit: ${{ github.sha }}
           allow_forks: false
           name: projectm-osx-dmg-intel
-          workflow_search: true
+          workflow_search: false
 
       - name: Download Apple Silicon DMG From macOS Build
         id: download-osx-dmg-arm64
@@ -95,10 +97,11 @@ jobs:
           workflow: build_osx.yml
           workflow_conclusion: success
           path: artifacts/macos-arm64
-          branch: ${{ github.ref_name }}
+          event: push
+          commit: ${{ github.sha }}
           allow_forks: false
           name: projectm-osx-dmg-arm64
-          workflow_search: true
+          workflow_search: false
 
       - name: Prepare macOS DMGs for Release
         run: |
