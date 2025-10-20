@@ -63,7 +63,6 @@ jobs:
             workflow: build_linux.yml
             workflow_conclusion: success
             path: artifacts/linux
-            commit: ${{ github.sha }}
             allow_forks: false
             name: projectm-linux-shared-latest
             workflow_search: true
@@ -82,7 +81,6 @@ jobs:
           workflow: build_osx.yml
           workflow_conclusion: success
           path: artifacts/macos-intel
-          commit: ${{ github.sha }}
           allow_forks: false
           name: projectm-osx-dmg-intel
           workflow_search: true
@@ -95,7 +93,6 @@ jobs:
           workflow: build_osx.yml
           workflow_conclusion: success
           path: artifacts/macos-arm64
-          commit: ${{ github.sha }}
           allow_forks: false
           name: projectm-osx-dmg-arm64
           workflow_search: true
@@ -113,7 +110,6 @@ jobs:
           workflow: build_windows.yml
           workflow_conclusion: success
           path: artifacts/windows
-          commit: ${{ github.sha }}
           skip_unpack: true
           allow_forks: false
           name: projectm-windows-shared-latest
