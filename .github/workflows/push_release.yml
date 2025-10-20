@@ -66,6 +66,7 @@ jobs:
             commit: ${{ github.sha }}
             allow_forks: false
             name: projectm-linux-shared-latest
+            workflow_search: true
 
       - name: Create Linux Package
         run: |
@@ -84,6 +85,7 @@ jobs:
           commit: ${{ github.sha }}
           allow_forks: false
           name: projectm-osx-dmg-intel
+          workflow_search: true
 
       - name: Download Apple Silicon DMG From macOS Build
         id: download-osx-dmg-arm64
@@ -96,6 +98,7 @@ jobs:
           commit: ${{ github.sha }}
           allow_forks: false
           name: projectm-osx-dmg-arm64
+          workflow_search: true
 
       - name: Prepare macOS DMGs for Release
         run: |
@@ -114,6 +117,7 @@ jobs:
           skip_unpack: true
           allow_forks: false
           name: projectm-windows-shared-latest
+          workflow_search: true
 
       - name: Create Windows Package
         run: |
