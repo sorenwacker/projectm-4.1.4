@@ -62,16 +62,30 @@ elif [ -f "${BUILD_DIR}/src/playlist/libprojectM-4-playlist.4.1.4.dylib" ]; then
     ln -sf "libprojectM-4-playlist.4.1.4.dylib" "${FRAMEWORKS_DIR}/libprojectM-4-playlist.4.dylib"
 fi
 
-# Copy presets from Homebrew installation
+# Copy presets
 echo "Copying presets..."
-HOMEBREW_PRESETS="/opt/homebrew/Cellar/projectm/3.1.12/share/projectM/presets"
-if [ -d "${HOMEBREW_PRESETS}" ]; then
-    cp -R "${HOMEBREW_PRESETS}" "${RESOURCES_DIR}/presets"
-    echo "Copied presets from Homebrew installation"
+PRESETS_SOURCE="${PRESETS_DIR:-}"
+
+if [ -n "${PRESETS_SOURCE}" ] && [ -d "${PRESETS_SOURCE}" ]; then
+    # Use provided presets directory
+    cp -R "${PRESETS_SOURCE}" "${RESOURCES_DIR}/presets"
+    echo "Copied presets from ${PRESETS_SOURCE}"
 else
-    echo "Warning: Homebrew presets not found at ${HOMEBREW_PRESETS}"
-    echo "Creating empty presets directory..."
-    mkdir -p "${RESOURCES_DIR}/presets"
+    # Try Homebrew presets as fallback
+    HOMEBREW_PRESETS_ARM="/opt/homebrew/Cellar/projectm/3.1.12/share/projectM/presets"
+    HOMEBREW_PRESETS_INTEL="/usr/local/Cellar/projectm/3.1.12/share/projectM/presets"
+
+    if [ -d "${HOMEBREW_PRESETS_ARM}" ]; then
+        cp -R "${HOMEBREW_PRESETS_ARM}" "${RESOURCES_DIR}/presets"
+        echo "Copied presets from Homebrew (Apple Silicon)"
+    elif [ -d "${HOMEBREW_PRESETS_INTEL}" ]; then
+        cp -R "${HOMEBREW_PRESETS_INTEL}" "${RESOURCES_DIR}/presets"
+        echo "Copied presets from Homebrew (Intel)"
+    else
+        echo "Warning: No presets found"
+        echo "Creating empty presets directory..."
+        mkdir -p "${RESOURCES_DIR}/presets"
+    fi
 fi
 
 # Create favorites folder

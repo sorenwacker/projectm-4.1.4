@@ -138,7 +138,7 @@ jobs:
           tag_name: ${{ env.TAG }}
           # body: |
           #   ${{steps.github_release.outputs.changelog}}
-          draft: true
+          draft: false
           prerelease: false
           fail_on_unmatched_files: true
           files: |
