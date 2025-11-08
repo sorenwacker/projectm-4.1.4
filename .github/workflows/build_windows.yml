@@ -38,6 +38,11 @@ jobs:
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target INSTALL
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target INSTALL
 
+      - name: Install NSIS
+        run: |
+          choco install nsis -y
+          echo "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Create Installer Package
         run: |
           cd "${{ github.workspace }}/cmake-build"
@@ -80,6 +85,11 @@ jobs:
         run: |
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target INSTALL
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target INSTALL
+
+      - name: Install NSIS
+        run: |
+          choco install nsis -y
+          echo "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Create Installer Package
         run: |
