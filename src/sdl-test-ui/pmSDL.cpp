@@ -266,6 +266,7 @@ void projectMSDL::printTerminalHelp()
 
 void projectMSDL::processTerminalCommand()
 {
+#ifndef _WIN32
     // Read a single character (non-blocking)
     char c;
     ssize_t n = read(STDIN_FILENO, &c, 1);
@@ -527,6 +528,7 @@ void projectMSDL::processTerminalCommand()
             // Ignore unknown keys silently
             break;
     }
+#endif
 }
 
 void projectMSDL::reloadPlaylist()
