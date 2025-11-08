@@ -117,9 +117,22 @@ jobs:
           name: projectm-windows-shared-latest
           workflow_search: true
 
+      - name: Download Windows Installer
+        id: download-windows-installer
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{secrets.GITHUB_TOKEN}}
+          workflow: build_windows.yml
+          workflow_conclusion: success
+          path: artifacts/windows-installer
+          allow_forks: false
+          name: projectm-windows-installer
+          workflow_search: true
+
       - name: Create Windows Package
         run: |
           mv ${{ github.workspace }}/artifacts/windows/projectm-windows-shared-latest.zip ${{ github.workspace }}/projectm-windows-x64-${{ env.TAG }}.zip
+          mv ${{ github.workspace }}/artifacts/windows-installer/projectM-*.exe ${{ github.workspace }}/projectm-windows-x64-installer-${{ env.TAG }}.exe
 
       - name: Display Ready Packages
         run: |
@@ -146,4 +159,5 @@ jobs:
             projectM-macOS-Intel-${{ env.TAG }}.dmg
             projectM-macOS-AppleSilicon-${{ env.TAG }}.dmg
             projectm-windows-x64-${{ env.TAG }}.zip
+            projectm-windows-x64-installer-${{ env.TAG }}.exe
             

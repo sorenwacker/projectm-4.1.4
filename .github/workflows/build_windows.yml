@@ -38,11 +38,22 @@ jobs:
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target INSTALL
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target INSTALL
 
+      - name: Create Installer Package
+        run: |
+          cd "${{ github.workspace }}/cmake-build"
+          cpack -C Release -G NSIS
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
             name: projectm-windows-shared-latest
             path: install/*
+
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+            name: projectm-windows-installer
+            path: cmake-build/projectM-*.exe
 
   build-static:
     name: Static Library
@@ -70,8 +81,19 @@ jobs:
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target INSTALL
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target INSTALL
 
+      - name: Create Installer Package
+        run: |
+          cd "${{ github.workspace }}/cmake-build"
+          cpack -C Release -G NSIS
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: projectm-windows-static-latest
           path: install/*
+
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: projectm-windows-static-installer
+          path: cmake-build/projectM-*.exe
