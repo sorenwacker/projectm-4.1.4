@@ -86,6 +86,60 @@ Source code and other resources, mostly aimed at developers.
 - [ALSA, XMMS, Winamp, JACK](https://sourceforge.net/projects/projectm/files/) (legacy 2.x sources for historic
   purposes, unmaintained since 2012)
 
+### Audio Input Setup
+
+projectM can visualize audio from your microphone or system audio output. Configuration varies by platform:
+
+#### macOS
+
+On macOS, you need to grant microphone permissions to the application:
+
+1. Run projectM for the first time
+2. macOS will prompt for microphone access - click **Allow**
+3. If you missed the prompt, go to **System Settings > Privacy & Security > Microphone**
+4. Enable the checkbox next to projectM
+
+For system audio (visualizing your music playback), you need a virtual audio device:
+- Install [BlackHole](https://github.com/ExistentialAudio/BlackHole) (free, open-source)
+- Create a Multi-Output Device in Audio MIDI Setup combining your speakers and BlackHole
+- Set projectM's input to BlackHole
+
+#### Windows
+
+Windows requires system audio routing for visualizing playback:
+
+1. Install [VB-Audio Cable](https://vb-audio.com/Cable/) (free) or similar virtual audio device
+2. Set your default playback device to the virtual cable
+3. In Sound Settings, enable "Listen to this device" on the virtual cable, outputting to your speakers
+4. Run projectM and select the virtual cable as the input device
+
+For microphone input, simply select your microphone as the audio input device in projectM.
+
+#### Linux
+
+Linux audio configuration depends on your audio system:
+
+**PulseAudio:**
+```bash
+# List audio sources
+pactl list sources
+
+# Set projectM to use microphone or monitor (system audio)
+# Use the monitor source to capture system playback
+```
+
+**PipeWire:**
+```bash
+# PipeWire provides similar functionality to PulseAudio
+pw-cli list-objects Node
+
+# Use pavucontrol to graphically route audio
+sudo apt install pavucontrol  # Debian/Ubuntu
+```
+
+**ALSA:**
+Configure ALSA loopback or use the microphone input directly. Consult your distribution's documentation for ALSA configuration.
+
 ### Discord chat
 
 [Chat with us on Discord!](https://discord.gg/mMrxAqaa3W)
