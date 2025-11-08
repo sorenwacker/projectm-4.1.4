@@ -31,12 +31,13 @@
 #include "pmSDL.hpp"
 
 #include <vector>
+#ifndef _WIN32
 #include <unistd.h>
 #include <sys/select.h>
 #include <termios.h>
-#include <fstream>
-
 static struct termios orig_termios;
+#endif
+#include <fstream>
 
 projectMSDL::projectMSDL(SDL_GLContext glCtx, const std::string& presetPath)
     : _openGlContext(glCtx)
@@ -197,6 +198,7 @@ void projectMSDL::printKeyboardShortcuts()
 
 void projectMSDL::setTerminalMode()
 {
+#ifndef _WIN32
     // Get current terminal settings
     tcgetattr(STDIN_FILENO, &orig_termios);
 
@@ -206,12 +208,15 @@ void projectMSDL::setTerminalMode()
     raw.c_cc[VMIN] = 0;  // Non-blocking read
     raw.c_cc[VTIME] = 0;
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+#endif
 }
 
 void projectMSDL::restoreTerminalMode()
 {
+#ifndef _WIN32
     // Restore original terminal settings
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+#endif
 }
 
 void projectMSDL::printTerminalHelp()
