@@ -320,6 +320,16 @@ if(WIN32)
     set(CPACK_NSIS_HELP_LINK "https://github.com/projectM-visualizer/projectm")
     set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/projectM-visualizer/projectm")
     set(CPACK_NSIS_CONTACT "https://github.com/projectM-visualizer/projectm/issues")
+
+    # Create Start Menu and Desktop shortcuts
+    set(CPACK_NSIS_CREATE_ICONS_EXTRA "
+        CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\projectM.lnk' '$INSTDIR\\\\bin\\\\projectM-Test-UI.exe'
+        CreateShortCut '$DESKTOP\\\\projectM.lnk' '$INSTDIR\\\\bin\\\\projectM-Test-UI.exe'
+    ")
+    set(CPACK_NSIS_DELETE_ICONS_EXTRA "
+        Delete '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\projectM.lnk'
+        Delete '$DESKTOP\\\\projectM.lnk'
+    ")
 endif()
 
 include(CPack)
