@@ -308,7 +308,7 @@ set(CPACK_VERBATIM_VARIABLES YES)
 
 # Windows-specific installer configuration
 if(WIN32)
-    set(CPACK_GENERATOR "NSIS;ZIP")
+    set(CPACK_GENERATOR "NSIS")
     set(CPACK_NSIS_DISPLAY_NAME "projectM ${PROJECT_VERSION}")
     set(CPACK_NSIS_PACKAGE_NAME "projectM")
     set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)

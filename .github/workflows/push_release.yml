@@ -104,19 +104,6 @@ jobs:
           mv ${{ github.workspace }}/artifacts/macos-intel/projectM-v4.1.4-macOS-Intel.dmg ${{ github.workspace }}/projectM-macOS-Intel-${{ env.TAG }}.dmg
           mv ${{ github.workspace }}/artifacts/macos-arm64/projectM-v4.1.4-macOS-AppleSilicon.dmg ${{ github.workspace }}/projectM-macOS-AppleSilicon-${{ env.TAG }}.dmg
 
-      - name: Download Artifacts From Windows Build
-        id: download-windows-artifact
-        uses: dawidd6/action-download-artifact@v6
-        with:
-          github_token: ${{secrets.GITHUB_TOKEN}}
-          workflow: build_windows.yml
-          workflow_conclusion: success
-          path: artifacts/windows
-          skip_unpack: true
-          allow_forks: false
-          name: projectm-windows-shared-latest
-          workflow_search: true
-
       - name: Download Windows Installer
         id: download-windows-installer
         uses: dawidd6/action-download-artifact@v6
@@ -131,7 +118,6 @@ jobs:
 
       - name: Create Windows Package
         run: |
-          mv ${{ github.workspace }}/artifacts/windows/projectm-windows-shared-latest.zip ${{ github.workspace }}/projectm-windows-x64-${{ env.TAG }}.zip
           mv ${{ github.workspace }}/artifacts/windows-installer/projectM-*.exe ${{ github.workspace }}/projectm-windows-x64-installer-${{ env.TAG }}.exe
 
       - name: Display Ready Packages
@@ -158,6 +144,5 @@ jobs:
             projectm-linux-x64-${{ env.TAG }}.tar.gz
             projectM-macOS-Intel-${{ env.TAG }}.dmg
             projectM-macOS-AppleSilicon-${{ env.TAG }}.dmg
-            projectm-windows-x64-${{ env.TAG }}.zip
             projectm-windows-x64-installer-${{ env.TAG }}.exe
             
