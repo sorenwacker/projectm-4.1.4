@@ -38,3 +38,8 @@ if(MSVC)
                 "lower-than-expected resolution on high-DPI displays.")
     endif()
 endif()
+
+# Install the executable
+install(TARGETS projectM-Test-UI
+        RUNTIME DESTINATION ${PROJECTM_BIN_DIR}
+        COMPONENT Applications)
