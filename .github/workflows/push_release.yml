@@ -113,7 +113,7 @@ jobs:
           workflow_conclusion: success
           path: artifacts/windows-installer
           allow_forks: false
-          name: projectm-windows-installer
+          name: projectm-windows-static-installer
           workflow_search: true
 
       - name: Create Windows Package
