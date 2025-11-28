@@ -1,5 +1,5 @@
 install(DIRECTORY
-        milkdrop-original
+        cream-of-the-crop
         DESTINATION "presets"
         COMPONENT Presets
         )

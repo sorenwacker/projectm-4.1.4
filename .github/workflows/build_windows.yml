@@ -41,7 +41,7 @@ jobs:
       - name: Copy Presets
         run: |
           New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/install/share/projectM/presets"
-          Copy-Item -Path presets/milkdrop-original -Destination "${{ github.workspace }}/install/share/projectM/presets" -Recurse -Force
+          Copy-Item -Path presets/cream-of-the-crop/* -Destination "${{ github.workspace }}/install/share/projectM/presets" -Recurse -Force
 
       - name: Install NSIS
         run: |
@@ -94,7 +94,7 @@ jobs:
       - name: Copy Presets
         run: |
           New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/install/share/projectM/presets"
-          Copy-Item -Path presets/milkdrop-original -Destination "${{ github.workspace }}/install/share/projectM/presets" -Recurse -Force
+          Copy-Item -Path presets/cream-of-the-crop/* -Destination "${{ github.workspace }}/install/share/projectM/presets" -Recurse -Force
 
       - name: Install NSIS
         run: |

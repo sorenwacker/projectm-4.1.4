@@ -44,7 +44,7 @@ jobs:
       - name: Create macOS App Bundle
         run: |
           chmod +x create_macos_app.sh
-          BUILD_DIR=cmake-build PRESETS_DIR=presets/milkdrop-original ./create_macos_app.sh
+          BUILD_DIR=cmake-build PRESETS_DIR=presets/cream-of-the-crop ./create_macos_app.sh
 
       - name: Create DMG Installer
         run: |
@@ -96,7 +96,7 @@ jobs:
       - name: Create macOS App Bundle
         run: |
           chmod +x create_macos_app.sh
-          BUILD_DIR=cmake-build PRESETS_DIR=presets/milkdrop-original ./create_macos_app.sh
+          BUILD_DIR=cmake-build PRESETS_DIR=presets/cream-of-the-crop ./create_macos_app.sh
 
       - name: Create DMG Installer
         run: |
