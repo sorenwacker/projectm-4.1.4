@@ -52,11 +52,12 @@ static int mainLoop(void *userData) {
     while (! app->done) {
         // render
         app->renderFrame();
-        
+        app->renderControlWindow(); // Render control window if open
+
         if (app->fakeAudio)
             app->addFakePCM();
         processLoopbackFrame(app);
-        
+
 #if UNLOCK_FPS
         advanceUnlockedFPSCounterFrame(start);
 #else

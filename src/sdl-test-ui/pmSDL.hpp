@@ -44,6 +44,7 @@
 
 // projectM SDL
 #include "audioCapture.hpp"
+#include "ControlWindow.hpp"
 #include "loopback.hpp"
 #include "opengl.h"
 #include "setup.hpp"
@@ -131,6 +132,9 @@ public:
     void printTerminalHelp();
     void setTerminalMode();
     void restoreTerminalMode();
+    void openControlWindow();
+    void updateControlWindow();
+    void renderControlWindow();
     bool keymod = false;
     std::string getActivePresetName();
     void addFakePCM();
@@ -188,4 +192,7 @@ private:
     int _selectedAudioDevice{0};
 
     std::string _presetName; //!< Current preset name
+
+    // Control window
+    ControlWindow _controlWindow;
 };

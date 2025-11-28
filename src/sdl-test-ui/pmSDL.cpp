@@ -190,6 +190,7 @@ void projectMSDL::printKeyboardShortcuts()
     printf("  UP/DOWN Arrow     - Adjust time scale (0.01x - 2.0x, adaptive increments)\n");
     printf("  S                 - Toggle slow motion (0.1x/1.0x)\n");
     printf("\nOther:\n");
+    printf("  CMD+C             - Open control window\n");
     printf("  H                 - Show this help\n");
     printf("  CMD+Q             - Quit\n");
     printf("\n* Type 'help' in terminal for command-line control\n");
@@ -736,6 +737,16 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
             printKeyboardShortcuts();
             break;
 
+        case SDLK_c:
+            if (sdl_mod & KMOD_LGUI || sdl_mod & KMOD_RGUI || sdl_mod & KMOD_LCTRL)
+            {
+                // CMD+C: Open control window
+                openControlWindow();
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Control window opened");
+                return;
+            }
+            break;
+
         case SDLK_a:
             {
                 bool newValue = !projectm_get_aspect_correction(_projectM);
@@ -1040,6 +1051,11 @@ void projectMSDL::pollEvent()
     int mousepressure = 0;
     while (SDL_PollEvent(&evt))
     {
+        // Handle control window events first
+        if (_controlWindow.isOpen()) {
+            _controlWindow.handleEvent(evt);
+        }
+
         switch (evt.type)
         {
             case SDL_WINDOWEVENT:
@@ -1231,4 +1247,95 @@ void projectMSDL::UpdateWindowTitle()
         title.append(" [favorites]");
     }
     SDL_SetWindowTitle(_sdlWindow, title.c_str());
+}
+
+void projectMSDL::openControlWindow()
+{
+    if (_controlWindow.isOpen()) {
+        return; // Already open
+    }
+
+    // Position control window to the right of the main window
+    int mainX, mainY;
+    SDL_GetWindowPosition(_sdlWindow, &mainX, &mainY);
+
+    if (!_controlWindow.init(mainX + 50, mainY + 50)) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to open control window");
+        return;
+    }
+
+    // Set up callbacks
+    _controlWindow.onPrev = [this]() {
+        projectm_playlist_play_previous(_playlist, true);
+    };
+
+    _controlWindow.onNext = [this]() {
+        projectm_playlist_play_next(_playlist, true);
+    };
+
+    _controlWindow.onRandom = [this]() {
+        projectm_playlist_set_shuffle(_playlist, true);
+        projectm_playlist_play_next(_playlist, true);
+        projectm_playlist_set_shuffle(_playlist, _shuffle);
+    };
+
+    _controlWindow.onToggleShuffle = [this]() {
+        _shuffle = !_shuffle;
+        projectm_playlist_set_shuffle(_playlist, _shuffle);
+        _controlWindow.setShuffleState(_shuffle);
+    };
+
+    _controlWindow.onToggleLock = [this]() {
+        bool newValue = !projectm_get_preset_locked(_projectM);
+        projectm_set_preset_locked(_projectM, newValue);
+        _controlWindow.setLockState(newValue);
+        UpdateWindowTitle();
+    };
+
+    _controlWindow.onAddFavorite = [this]() {
+        if (_presetName.find("/favorites/") != std::string::npos)
+            movePresetFromFavorites();
+        else
+            movePresetToFavorites();
+    };
+
+    _controlWindow.onToggleFavorites = [this]() {
+        toggleFavoritesMode();
+        _controlWindow.setFavoritesMode(_favoritesOnlyMode);
+    };
+
+    _controlWindow.onFullscreen = [this]() {
+        toggleFullScreen();
+    };
+
+    _controlWindow.onSetDuration = [this](double duration) {
+        _randomDurationMode = false;
+        projectm_set_preset_duration(_projectM, duration);
+    };
+
+    // Initial state
+    updateControlWindow();
+}
+
+void projectMSDL::updateControlWindow()
+{
+    if (!_controlWindow.isOpen()) return;
+
+    _controlWindow.setPresetName(_presetName);
+    _controlWindow.setShuffleState(_shuffle);
+    _controlWindow.setLockState(projectm_get_preset_locked(_projectM));
+    _controlWindow.setFavoritesMode(_favoritesOnlyMode);
+    _controlWindow.setDuration(projectm_get_preset_duration(_projectM));
+    _controlWindow.setPresetIndex(
+        projectm_playlist_get_position(_playlist),
+        projectm_playlist_size(_playlist)
+    );
+}
+
+void projectMSDL::renderControlWindow()
+{
+    if (!_controlWindow.isOpen()) return;
+
+    updateControlWindow();
+    _controlWindow.render();
 }

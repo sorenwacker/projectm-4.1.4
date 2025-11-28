@@ -5,6 +5,8 @@ endif()
 add_executable(projectM-Test-UI
         ConfigFile.cpp
         ConfigFile.h
+        ControlWindow.cpp
+        ControlWindow.hpp
         audioCapture.cpp
         audioCapture.hpp
         loopback.cpp
