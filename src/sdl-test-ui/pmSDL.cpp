@@ -190,7 +190,7 @@ void projectMSDL::printKeyboardShortcuts()
     printf("  UP/DOWN Arrow     - Adjust time scale (0.01x - 2.0x, adaptive increments)\n");
     printf("  S                 - Toggle slow motion (0.1x/1.0x)\n");
     printf("\nOther:\n");
-    printf("  CMD+C             - Open control window\n");
+    printf("  C                 - Open control window\n");
     printf("  H                 - Show this help\n");
     printf("  CMD+Q             - Quit\n");
     printf("\n* Type 'help' in terminal for command-line control\n");
@@ -738,9 +738,9 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
             break;
 
         case SDLK_c:
-            if (sdl_mod & KMOD_LGUI || sdl_mod & KMOD_RGUI || sdl_mod & KMOD_LCTRL)
+            // C (without modifier): Open control window
+            if (!(sdl_mod & KMOD_LGUI) && !(sdl_mod & KMOD_RGUI) && !(sdl_mod & KMOD_LCTRL))
             {
-                // CMD+C: Open control window
                 openControlWindow();
                 SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Control window opened");
                 return;
