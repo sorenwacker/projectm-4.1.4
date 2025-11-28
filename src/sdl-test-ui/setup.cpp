@@ -189,6 +189,29 @@ projectMSDL *setupSDLApp() {
     }
 
     std::string base_path = DATADIR_PATH;
+
+    // Check for environment variable override (used by macOS app bundle)
+    const char* env_datadir = getenv("DATADIR_PATH");
+    if (env_datadir != NULL && strlen(env_datadir) > 0) {
+        base_path = env_datadir;
+    }
+#ifdef __APPLE__
+    // On macOS, try to detect if running from app bundle
+    else {
+        char* sdl_base = SDL_GetBasePath();
+        if (sdl_base != NULL) {
+            std::string sdl_path(sdl_base);
+            SDL_free(sdl_base);
+            // Check if we're in a .app bundle (path ends with /Contents/MacOS/)
+            if (sdl_path.find("/Contents/MacOS/") != std::string::npos) {
+                // Replace MacOS with Resources
+                size_t pos = sdl_path.find("/Contents/MacOS/");
+                base_path = sdl_path.substr(0, pos) + "/Contents/Resources";
+            }
+        }
+    }
+#endif
+
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Using data directory: %s\n", base_path.c_str());
 
     // load configuration file
