@@ -1,3 +1,9 @@
+install(DIRECTORY
+        milkdrop-original
+        DESTINATION "presets"
+        COMPONENT Presets
+        )
+
 if(ENABLE_TESTING)
     install(DIRECTORY
             tests

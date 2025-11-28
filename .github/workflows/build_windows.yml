@@ -38,14 +38,10 @@ jobs:
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target INSTALL
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target INSTALL
 
-      - name: Download Presets
+      - name: Copy Presets
         run: |
-          curl -L https://github.com/projectM-visualizer/presets-milkdrop-original/archive/refs/heads/master.zip -o presets.zip
-          Expand-Archive -Path presets.zip -DestinationPath .
           New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/install/share/projectM/presets"
-          Copy-Item -Path presets-milkdrop-original-master/* -Destination "${{ github.workspace }}/install/share/projectM/presets" -Recurse -Force
-          Remove-Item presets-milkdrop-original-master -Recurse -Force
-          Remove-Item presets.zip
+          Copy-Item -Path presets/milkdrop-original -Destination "${{ github.workspace }}/install/share/projectM/presets" -Recurse -Force
 
       - name: Install NSIS
         run: |
@@ -95,14 +91,10 @@ jobs:
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target INSTALL
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target INSTALL
 
-      - name: Download Presets
+      - name: Copy Presets
         run: |
-          curl -L https://github.com/projectM-visualizer/presets-milkdrop-original/archive/refs/heads/master.zip -o presets.zip
-          Expand-Archive -Path presets.zip -DestinationPath .
           New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/install/share/projectM/presets"
-          Copy-Item -Path presets-milkdrop-original-master/* -Destination "${{ github.workspace }}/install/share/projectM/presets" -Recurse -Force
-          Remove-Item presets-milkdrop-original-master -Recurse -Force
-          Remove-Item presets.zip
+          Copy-Item -Path presets/milkdrop-original -Destination "${{ github.workspace }}/install/share/projectM/presets" -Recurse -Force
 
       - name: Install NSIS
         run: |

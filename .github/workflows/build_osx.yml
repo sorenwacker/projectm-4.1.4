@@ -41,18 +41,10 @@ jobs:
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target install
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target install
 
-      - name: Download Presets
-        run: |
-          curl -L https://github.com/projectM-visualizer/presets-milkdrop-original/archive/refs/heads/master.zip -o presets.zip
-          unzip -q presets.zip
-          mkdir -p presets_download
-          mv presets-milkdrop-original-master/* presets_download/
-          rm -rf presets-milkdrop-original-master presets.zip
-
       - name: Create macOS App Bundle
         run: |
           chmod +x create_macos_app.sh
-          BUILD_DIR=cmake-build PRESETS_DIR=presets_download ./create_macos_app.sh
+          BUILD_DIR=cmake-build PRESETS_DIR=presets/milkdrop-original ./create_macos_app.sh
 
       - name: Create DMG Installer
         run: |
@@ -101,18 +93,10 @@ jobs:
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target install
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target install
 
-      - name: Download Presets
-        run: |
-          curl -L https://github.com/projectM-visualizer/presets-milkdrop-original/archive/refs/heads/master.zip -o presets.zip
-          unzip -q presets.zip
-          mkdir -p presets_download
-          mv presets-milkdrop-original-master/* presets_download/
-          rm -rf presets-milkdrop-original-master presets.zip
-
       - name: Create macOS App Bundle
         run: |
           chmod +x create_macos_app.sh
-          BUILD_DIR=cmake-build PRESETS_DIR=presets_download ./create_macos_app.sh
+          BUILD_DIR=cmake-build PRESETS_DIR=presets/milkdrop-original ./create_macos_app.sh
 
       - name: Create DMG Installer
         run: |
