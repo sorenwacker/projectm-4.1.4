@@ -1069,6 +1069,16 @@ void projectMSDL::pollEvent()
                     case SDL_WINDOWEVENT_SIZE_CHANGED:
                         resize(w, h);
                         break;
+                    case SDL_WINDOWEVENT_MOVED:
+                    case SDL_WINDOWEVENT_DISPLAY_CHANGED:
+                        // When window moves to different display, update resolution
+                        // This fixes HiDPI issues when moving between Retina and non-Retina displays
+                        resize(w, h);
+                        break;
+                    case SDL_WINDOWEVENT_EXPOSED:
+                        // Refresh when window is exposed (e.g., after being occluded)
+                        resize(w, h);
+                        break;
                 }
                 break;
             case SDL_MOUSEWHEEL:
