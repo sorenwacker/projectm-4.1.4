@@ -244,11 +244,13 @@ void ControlWindow::handleEvent(SDL_Event& event) {
     int mouseX, mouseY;
     SDL_GetMouseState(&mouseX, &mouseY);
 
+    SDL_Point mousePoint = {mouseX, mouseY};
+
     switch (event.type) {
         case SDL_MOUSEMOTION:
             // Update button hover states
             for (auto& btn : _buttons) {
-                btn.hovered = SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &btn.rect);
+                btn.hovered = SDL_PointInRect(&mousePoint, &btn.rect);
             }
 
             // Handle slider dragging
@@ -265,14 +267,14 @@ void ControlWindow::handleEvent(SDL_Event& event) {
             if (event.button.button == SDL_BUTTON_LEFT) {
                 // Check buttons
                 for (auto& btn : _buttons) {
-                    if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &btn.rect)) {
+                    if (SDL_PointInRect(&mousePoint, &btn.rect)) {
                         btn.pressed = true;
                     }
                 }
 
                 // Check slider
                 SDL_Rect sliderArea = {_sliderRect.x, _sliderRect.y + 30, _sliderRect.w, 24};
-                if (SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &sliderArea)) {
+                if (SDL_PointInRect(&mousePoint, &sliderArea)) {
                     _draggingSlider = true;
                     double normalized = (double)(mouseX - sliderArea.x) / sliderArea.w;
                     normalized = std::max(0.0, std::min(1.0, normalized));
@@ -287,7 +289,7 @@ void ControlWindow::handleEvent(SDL_Event& event) {
                 _draggingSlider = false;
 
                 for (auto& btn : _buttons) {
-                    if (btn.pressed && SDL_PointInRect(&(SDL_Point){mouseX, mouseY}, &btn.rect)) {
+                    if (btn.pressed && SDL_PointInRect(&mousePoint, &btn.rect)) {
                         if (btn.onClick) btn.onClick();
                     }
                     btn.pressed = false;
