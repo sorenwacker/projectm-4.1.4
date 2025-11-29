@@ -2,13 +2,13 @@ name: Windows (x64)
 
 on:
   push:
-      branches: 
+      branches:
         - "*"
       tags:
         - "*"
-    
+
   pull_request:
-      branches: 
+      branches:
         - "*"
 
 jobs:
@@ -38,35 +38,27 @@ jobs:
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target INSTALL
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target INSTALL
 
-      - name: Sanitize Presets for NSIS
+      - name: Copy Presets to Install Directory
         run: |
-          # Create sanitized presets directory for use by cmake install
-          $sanitizedPath = "${{ github.workspace }}/presets-sanitized"
-          New-Item -ItemType Directory -Force -Path $sanitizedPath | Out-Null
+          # Copy presets with sanitized names to install directory for the artifact
+          $installPath = "${{ github.workspace }}/install/share/projectM/presets"
+          New-Item -ItemType Directory -Force -Path $installPath | Out-Null
 
           Get-ChildItem -LiteralPath "presets/cream-of-the-crop" -Recurse -File | ForEach-Object {
-            # Get relative path from source
             $relativePath = $_.FullName.Substring((Get-Location).Path.Length + 1 + "presets/cream-of-the-crop/".Length)
             $relativeDir = Split-Path $relativePath -Parent
-            # Sanitize: replace problematic characters with underscores
             $safeName = $_.Name -replace '[&+\[\]()!@#$%^={};<>]', '_'
-            # Create target directory if needed
             if ($relativeDir) {
-              $targetDir = Join-Path $sanitizedPath $relativeDir
+              $targetDir = Join-Path $installPath $relativeDir
               New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
               $targetPath = Join-Path $targetDir $safeName
             } else {
-              $targetPath = Join-Path $sanitizedPath $safeName
+              $targetPath = Join-Path $installPath $safeName
             }
             Copy-Item -LiteralPath $_.FullName -Destination $targetPath -Force
           }
-          $count = (Get-ChildItem -Path $sanitizedPath -Recurse -File | Measure-Object).Count
-          Write-Host "Sanitized $count preset files"
-
-          # Also copy to install directory for the artifact
-          $installPath = "${{ github.workspace }}/install/share/projectM/presets"
-          New-Item -ItemType Directory -Force -Path $installPath | Out-Null
-          Copy-Item -Path "$sanitizedPath\*" -Destination $installPath -Recurse -Force
+          $count = (Get-ChildItem -Path $installPath -Recurse -File | Measure-Object).Count
+          Write-Host "Copied $count preset files to install directory"
 
       - name: Install NSIS
         run: |
@@ -76,8 +68,9 @@ jobs:
       - name: Create Installer Package
         run: |
           cd "${{ github.workspace }}/cmake-build"
-          # Include sanitized presets directory in the installer
-          cpack -C Release -G NSIS -D "CPACK_INSTALLED_DIRECTORIES=${{ github.workspace }}/presets-sanitized;share/projectM/presets"
+          # Exclude Presets component - they cause NSIS errors due to special characters
+          # Presets are included in the artifact ZIP instead
+          cpack -C Release -G NSIS -D CPACK_COMPONENTS_ALL="Applications;Devel;Runtime"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -117,35 +110,27 @@ jobs:
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target INSTALL
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target INSTALL
 
-      - name: Sanitize Presets for NSIS
+      - name: Copy Presets to Install Directory
         run: |
-          # Create sanitized presets directory for use by cmake install
-          $sanitizedPath = "${{ github.workspace }}/presets-sanitized"
-          New-Item -ItemType Directory -Force -Path $sanitizedPath | Out-Null
+          # Copy presets with sanitized names to install directory for the artifact
+          $installPath = "${{ github.workspace }}/install/share/projectM/presets"
+          New-Item -ItemType Directory -Force -Path $installPath | Out-Null
 
           Get-ChildItem -LiteralPath "presets/cream-of-the-crop" -Recurse -File | ForEach-Object {
-            # Get relative path from source
             $relativePath = $_.FullName.Substring((Get-Location).Path.Length + 1 + "presets/cream-of-the-crop/".Length)
             $relativeDir = Split-Path $relativePath -Parent
-            # Sanitize: replace problematic characters with underscores
             $safeName = $_.Name -replace '[&+\[\]()!@#$%^={};<>]', '_'
-            # Create target directory if needed
             if ($relativeDir) {
-              $targetDir = Join-Path $sanitizedPath $relativeDir
+              $targetDir = Join-Path $installPath $relativeDir
               New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
               $targetPath = Join-Path $targetDir $safeName
             } else {
-              $targetPath = Join-Path $sanitizedPath $safeName
+              $targetPath = Join-Path $installPath $safeName
             }
             Copy-Item -LiteralPath $_.FullName -Destination $targetPath -Force
           }
-          $count = (Get-ChildItem -Path $sanitizedPath -Recurse -File | Measure-Object).Count
-          Write-Host "Sanitized $count preset files"
-
-          # Also copy to install directory for the artifact
-          $installPath = "${{ github.workspace }}/install/share/projectM/presets"
-          New-Item -ItemType Directory -Force -Path $installPath | Out-Null
-          Copy-Item -Path "$sanitizedPath\*" -Destination $installPath -Recurse -Force
+          $count = (Get-ChildItem -Path $installPath -Recurse -File | Measure-Object).Count
+          Write-Host "Copied $count preset files to install directory"
 
       - name: Install NSIS
         run: |
@@ -155,8 +140,9 @@ jobs:
       - name: Create Installer Package
         run: |
           cd "${{ github.workspace }}/cmake-build"
-          # Include sanitized presets directory in the installer
-          cpack -C Release -G NSIS -D "CPACK_INSTALLED_DIRECTORIES=${{ github.workspace }}/presets-sanitized;share/projectM/presets"
+          # Exclude Presets component - they cause NSIS errors due to special characters
+          # Presets are included in the artifact ZIP instead
+          cpack -C Release -G NSIS -D CPACK_COMPONENTS_ALL="Applications;Devel"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
