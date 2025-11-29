@@ -42,7 +42,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/install/share/projectM/presets"
           $destPath = "${{ github.workspace }}/install/share/projectM/presets"
-          Get-ChildItem -Path "presets/cream-of-the-crop" -Recurse -File | ForEach-Object {
+          Get-ChildItem -LiteralPath "presets/cream-of-the-crop" -Recurse -File | ForEach-Object {
             # Get relative path from source
             $relativePath = $_.FullName.Substring((Get-Location).Path.Length + 1 + "presets/cream-of-the-crop/".Length)
             $relativeDir = Split-Path $relativePath -Parent
@@ -56,7 +56,7 @@ jobs:
             } else {
               $targetPath = Join-Path $destPath $safeName
             }
-            Copy-Item -Path $_.FullName -Destination $targetPath -Force
+            Copy-Item -LiteralPath $_.FullName -Destination $targetPath -Force
           }
 
       - name: Install NSIS
@@ -111,7 +111,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/install/share/projectM/presets"
           $destPath = "${{ github.workspace }}/install/share/projectM/presets"
-          Get-ChildItem -Path "presets/cream-of-the-crop" -Recurse -File | ForEach-Object {
+          Get-ChildItem -LiteralPath "presets/cream-of-the-crop" -Recurse -File | ForEach-Object {
             # Get relative path from source
             $relativePath = $_.FullName.Substring((Get-Location).Path.Length + 1 + "presets/cream-of-the-crop/".Length)
             $relativeDir = Split-Path $relativePath -Parent
@@ -125,7 +125,7 @@ jobs:
             } else {
               $targetPath = Join-Path $destPath $safeName
             }
-            Copy-Item -Path $_.FullName -Destination $targetPath -Force
+            Copy-Item -LiteralPath $_.FullName -Destination $targetPath -Force
           }
 
       - name: Install NSIS
