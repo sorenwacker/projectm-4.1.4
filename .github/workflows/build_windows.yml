@@ -67,7 +67,9 @@ jobs:
       - name: Create Installer Package
         run: |
           cd "${{ github.workspace }}/cmake-build"
-          cpack -C Release -G NSIS
+          # Exclude Presets component from NSIS due to special characters in filenames
+          # Presets are already copied with sanitized names to install/share/projectM/presets
+          cpack -C Release -G NSIS -D CPACK_COMPONENTS_ALL="Applications;Devel;Runtime"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -136,7 +138,9 @@ jobs:
       - name: Create Installer Package
         run: |
           cd "${{ github.workspace }}/cmake-build"
-          cpack -C Release -G NSIS
+          # Exclude Presets component from NSIS due to special characters in filenames
+          # Presets are already copied with sanitized names to install/share/projectM/presets
+          cpack -C Release -G NSIS -D CPACK_COMPONENTS_ALL="Applications;Devel"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
