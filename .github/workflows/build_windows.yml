@@ -38,10 +38,12 @@ jobs:
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target INSTALL
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target INSTALL
 
-      - name: Copy and Sanitize Presets
+      - name: Sanitize Presets for NSIS
         run: |
-          New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/install/share/projectM/presets"
-          $destPath = "${{ github.workspace }}/install/share/projectM/presets"
+          # Create sanitized presets directory for use by cmake install
+          $sanitizedPath = "${{ github.workspace }}/presets-sanitized"
+          New-Item -ItemType Directory -Force -Path $sanitizedPath | Out-Null
+
           Get-ChildItem -LiteralPath "presets/cream-of-the-crop" -Recurse -File | ForEach-Object {
             # Get relative path from source
             $relativePath = $_.FullName.Substring((Get-Location).Path.Length + 1 + "presets/cream-of-the-crop/".Length)
@@ -50,14 +52,21 @@ jobs:
             $safeName = $_.Name -replace '[&+\[\]()!@#$%^={};<>]', '_'
             # Create target directory if needed
             if ($relativeDir) {
-              $targetDir = Join-Path $destPath $relativeDir
+              $targetDir = Join-Path $sanitizedPath $relativeDir
               New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
               $targetPath = Join-Path $targetDir $safeName
             } else {
-              $targetPath = Join-Path $destPath $safeName
+              $targetPath = Join-Path $sanitizedPath $safeName
             }
             Copy-Item -LiteralPath $_.FullName -Destination $targetPath -Force
           }
+          $count = (Get-ChildItem -Path $sanitizedPath -Recurse -File | Measure-Object).Count
+          Write-Host "Sanitized $count preset files"
+
+          # Also copy to install directory for the artifact
+          $installPath = "${{ github.workspace }}/install/share/projectM/presets"
+          New-Item -ItemType Directory -Force -Path $installPath | Out-Null
+          Copy-Item -Path "$sanitizedPath\*" -Destination $installPath -Recurse -Force
 
       - name: Install NSIS
         run: |
@@ -67,9 +76,8 @@ jobs:
       - name: Create Installer Package
         run: |
           cd "${{ github.workspace }}/cmake-build"
-          # Exclude Presets component from NSIS due to special characters in filenames
-          # Presets are already copied with sanitized names to install/share/projectM/presets
-          cpack -C Release -G NSIS -D CPACK_COMPONENTS_ALL="Applications;Devel;Runtime"
+          # Include sanitized presets directory in the installer
+          cpack -C Release -G NSIS -D "CPACK_INSTALLED_DIRECTORIES=${{ github.workspace }}/presets-sanitized;share/projectM/presets"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -109,10 +117,12 @@ jobs:
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target INSTALL
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target INSTALL
 
-      - name: Copy and Sanitize Presets
+      - name: Sanitize Presets for NSIS
         run: |
-          New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/install/share/projectM/presets"
-          $destPath = "${{ github.workspace }}/install/share/projectM/presets"
+          # Create sanitized presets directory for use by cmake install
+          $sanitizedPath = "${{ github.workspace }}/presets-sanitized"
+          New-Item -ItemType Directory -Force -Path $sanitizedPath | Out-Null
+
           Get-ChildItem -LiteralPath "presets/cream-of-the-crop" -Recurse -File | ForEach-Object {
             # Get relative path from source
             $relativePath = $_.FullName.Substring((Get-Location).Path.Length + 1 + "presets/cream-of-the-crop/".Length)
@@ -121,14 +131,21 @@ jobs:
             $safeName = $_.Name -replace '[&+\[\]()!@#$%^={};<>]', '_'
             # Create target directory if needed
             if ($relativeDir) {
-              $targetDir = Join-Path $destPath $relativeDir
+              $targetDir = Join-Path $sanitizedPath $relativeDir
               New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
               $targetPath = Join-Path $targetDir $safeName
             } else {
-              $targetPath = Join-Path $destPath $safeName
+              $targetPath = Join-Path $sanitizedPath $safeName
             }
             Copy-Item -LiteralPath $_.FullName -Destination $targetPath -Force
           }
+          $count = (Get-ChildItem -Path $sanitizedPath -Recurse -File | Measure-Object).Count
+          Write-Host "Sanitized $count preset files"
+
+          # Also copy to install directory for the artifact
+          $installPath = "${{ github.workspace }}/install/share/projectM/presets"
+          New-Item -ItemType Directory -Force -Path $installPath | Out-Null
+          Copy-Item -Path "$sanitizedPath\*" -Destination $installPath -Recurse -Force
 
       - name: Install NSIS
         run: |
@@ -138,9 +155,8 @@ jobs:
       - name: Create Installer Package
         run: |
           cd "${{ github.workspace }}/cmake-build"
-          # Exclude Presets component from NSIS due to special characters in filenames
-          # Presets are already copied with sanitized names to install/share/projectM/presets
-          cpack -C Release -G NSIS -D CPACK_COMPONENTS_ALL="Applications;Devel"
+          # Include sanitized presets directory in the installer
+          cpack -C Release -G NSIS -D "CPACK_INSTALLED_DIRECTORIES=${{ github.workspace }}/presets-sanitized;share/projectM/presets"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
