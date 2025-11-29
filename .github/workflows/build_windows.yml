@@ -38,10 +38,26 @@ jobs:
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target INSTALL
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target INSTALL
 
-      - name: Copy Presets
+      - name: Copy and Sanitize Presets
         run: |
           New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/install/share/projectM/presets"
-          Copy-Item -Path presets/cream-of-the-crop/* -Destination "${{ github.workspace }}/install/share/projectM/presets" -Recurse -Force
+          $destPath = "${{ github.workspace }}/install/share/projectM/presets"
+          Get-ChildItem -Path "presets/cream-of-the-crop" -Recurse -File | ForEach-Object {
+            # Get relative path from source
+            $relativePath = $_.FullName.Substring((Get-Location).Path.Length + 1 + "presets/cream-of-the-crop/".Length)
+            $relativeDir = Split-Path $relativePath -Parent
+            # Sanitize: replace problematic characters with underscores
+            $safeName = $_.Name -replace '[&+\[\]()!@#$%^={};<>]', '_'
+            # Create target directory if needed
+            if ($relativeDir) {
+              $targetDir = Join-Path $destPath $relativeDir
+              New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+              $targetPath = Join-Path $targetDir $safeName
+            } else {
+              $targetPath = Join-Path $destPath $safeName
+            }
+            Copy-Item -Path $_.FullName -Destination $targetPath -Force
+          }
 
       - name: Install NSIS
         run: |
@@ -91,10 +107,26 @@ jobs:
           cmake --build "${{ github.workspace }}/cmake-build" --config "Debug" --target INSTALL
           cmake --build "${{ github.workspace }}/cmake-build" --config "Release" --target INSTALL
 
-      - name: Copy Presets
+      - name: Copy and Sanitize Presets
         run: |
           New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/install/share/projectM/presets"
-          Copy-Item -Path presets/cream-of-the-crop/* -Destination "${{ github.workspace }}/install/share/projectM/presets" -Recurse -Force
+          $destPath = "${{ github.workspace }}/install/share/projectM/presets"
+          Get-ChildItem -Path "presets/cream-of-the-crop" -Recurse -File | ForEach-Object {
+            # Get relative path from source
+            $relativePath = $_.FullName.Substring((Get-Location).Path.Length + 1 + "presets/cream-of-the-crop/".Length)
+            $relativeDir = Split-Path $relativePath -Parent
+            # Sanitize: replace problematic characters with underscores
+            $safeName = $_.Name -replace '[&+\[\]()!@#$%^={};<>]', '_'
+            # Create target directory if needed
+            if ($relativeDir) {
+              $targetDir = Join-Path $destPath $relativeDir
+              New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+              $targetPath = Join-Path $targetDir $safeName
+            } else {
+              $targetPath = Join-Path $destPath $safeName
+            }
+            Copy-Item -Path $_.FullName -Destination $targetPath -Force
+          }
 
       - name: Install NSIS
         run: |
