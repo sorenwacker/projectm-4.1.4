@@ -153,24 +153,51 @@ sync
 # Unmount - need to handle APFS containers properly in CI
 echo "Unmounting DMG..."
 # First, kill any processes that might be using the volume
-lsof +D "${MOUNT_DIR}" 2>/dev/null | awk 'NR>1 {print $2}' | xargs -r kill 2>/dev/null || true
+lsof +D "${MOUNT_DIR}" 2>/dev/null | awk 'NR>1 {print $2}' | xargs kill 2>/dev/null || true
 sleep 2
 
+# Get the device for the mounted DMG
+DEVICE=$(hdiutil info | grep -B 20 "${MOUNT_DIR}" | grep "/dev/disk" | head -1 | awk '{print $1}')
+echo "DMG mounted on device: ${DEVICE}"
+
 # Try to unmount gracefully, then force if needed
-for attempt in 1 2 3; do
-    if hdiutil detach "${MOUNT_DIR}" 2>/dev/null; then
-        echo "DMG unmounted successfully"
+UNMOUNTED=false
+for attempt in 1 2 3 4 5; do
+    if [ ! -d "${MOUNT_DIR}" ]; then
+        echo "DMG already unmounted"
+        UNMOUNTED=true
         break
     fi
-    echo "Unmount attempt $attempt failed, waiting and retrying..."
-    sleep 3
-    if [ "$attempt" -eq 3 ]; then
-        echo "Forcing unmount..."
-        hdiutil detach "${MOUNT_DIR}" -force 2>/dev/null || true
-        # Also try to unmount by device name
-        diskutil unmountDisk force "${MOUNT_DIR}" 2>/dev/null || true
+
+    echo "Unmount attempt $attempt..."
+    if hdiutil detach "${MOUNT_DIR}" 2>/dev/null; then
+        echo "DMG unmounted successfully on attempt $attempt"
+        UNMOUNTED=true
+        break
+    fi
+
+    echo "Graceful unmount failed, trying alternatives..."
+    sleep 2
+
+    # Try force detach
+    hdiutil detach "${MOUNT_DIR}" -force 2>/dev/null || true
+    sleep 2
+
+    # Try diskutil
+    if [ -n "${DEVICE}" ]; then
+        diskutil unmountDisk force "${DEVICE}" 2>/dev/null || true
+        sleep 2
     fi
 done
+
+# Wait a bit more and verify
+sleep 3
+if [ -d "${MOUNT_DIR}" ]; then
+    echo "Warning: Mount point still exists, trying one more force eject..."
+    hdiutil detach "${MOUNT_DIR}" -force 2>/dev/null || true
+    diskutil eject "${DEVICE}" 2>/dev/null || true
+    sleep 3
+fi
 
 # Convert to compressed read-only DMG
 echo "Creating final compressed DMG..."
