@@ -150,9 +150,27 @@ sleep 3
 sync
 sync
 
-# Unmount
+# Unmount - need to handle APFS containers properly in CI
 echo "Unmounting DMG..."
-hdiutil detach "${MOUNT_DIR}" || hdiutil detach "${MOUNT_DIR}" -force
+# First, kill any processes that might be using the volume
+lsof +D "${MOUNT_DIR}" 2>/dev/null | awk 'NR>1 {print $2}' | xargs -r kill 2>/dev/null || true
+sleep 2
+
+# Try to unmount gracefully, then force if needed
+for attempt in 1 2 3; do
+    if hdiutil detach "${MOUNT_DIR}" 2>/dev/null; then
+        echo "DMG unmounted successfully"
+        break
+    fi
+    echo "Unmount attempt $attempt failed, waiting and retrying..."
+    sleep 3
+    if [ "$attempt" -eq 3 ]; then
+        echo "Forcing unmount..."
+        hdiutil detach "${MOUNT_DIR}" -force 2>/dev/null || true
+        # Also try to unmount by device name
+        diskutil unmountDisk force "${MOUNT_DIR}" 2>/dev/null || true
+    fi
+done
 
 # Convert to compressed read-only DMG
 echo "Creating final compressed DMG..."
