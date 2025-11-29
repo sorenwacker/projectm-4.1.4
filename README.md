@@ -10,7 +10,17 @@ projectM is an open-source project that reimplements the esteemed [Winamp Milkdr
 
 ## Modifications
 
-This fork includes the following changes to improve cross-platform builds and distribution:
+This fork includes the following changes to improve cross-platform builds, distribution, and user experience:
+
+### New Features
+
+- **Control Window**: Press `C` to open a separate control panel with buttons and sliders
+- **Rating System**: Rate presets 1-9 using number keys; higher-rated presets appear more frequently
+- **Preset History**: Navigate back/forward through viewed presets with Left/Right arrow keys
+- **Time Scale Control**: Adjust visualization speed from 0.01x to 2.0x with Up/Down arrows
+- **Beat Sensitivity**: Fine-tune audio reactivity with Cmd+Up/Down (0.0-2.0)
+- **Shuffle Mode**: Toggle random preset selection with `S`
+- **Slow Motion**: Quick toggle to 0.1x speed with `Y`
 
 ### Build System Improvements
 
@@ -25,14 +35,25 @@ This fork includes the following changes to improve cross-platform builds and di
 - **Installer Shortcuts**: Automated shortcut creation for Windows installations
 - **Preset Integration**: Official presets automatically included in installers
 
-### Technical Changes
+## Keyboard Shortcuts
 
-- Modified `.github/workflows/build_windows.yml` to add NSIS installer generation
-- Modified `.github/workflows/build_osx.yml` to bundle SDL2 library
-- Modified `.github/workflows/push_release.yml` to include installers in releases
-- Added platform guards in `src/sdl-test-ui/pmSDL.cpp` for Windows compatibility
-- Added install target in `src/sdl-test-ui/CMakeLists.txt`
-- Enhanced `CMakeLists.txt` with CPack NSIS configuration
+| Key | Action |
+|-----|--------|
+| H | Show help menu |
+| C | Open/close control window |
+| S | Toggle shuffle mode |
+| Y | Toggle slow motion (0.1x/1.0x) |
+| M | Toggle fullscreen |
+| L | Lock current preset |
+| N | Next preset |
+| P | Previous preset |
+| R | Random preset |
+| Left/Right | Navigate preset history |
+| Up/Down | Adjust time scale |
+| Cmd+Up/Down | Adjust beat sensitivity |
+| 1-9 | Set preset rating |
+| Space | Lock/unlock preset |
+| Esc | Exit |
 
 ## Downloads
 
