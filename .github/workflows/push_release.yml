@@ -19,16 +19,6 @@ jobs:
           echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
           echo "Building release for tag: ${GITHUB_REF#refs/tags/}"
 
-      - name: Wait On Linux Build
-        uses: tomchv/wait-my-workflow@v1.1.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: 'Shared Library'
-          ref: ${{ github.sha }}
-          intervalSeconds: 30
-          timeoutSeconds: 3600
-          workflow: build_linux.yml
-
       - name: Wait On macOS Intel Build
         uses: tomchv/wait-my-workflow@v1.1.0
         with:
@@ -48,34 +38,6 @@ jobs:
           intervalSeconds: 30
           timeoutSeconds: 3600
           workflow: build_osx.yml
-
-      - name: Wait On Windows Build
-        uses: tomchv/wait-my-workflow@v1.1.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: 'Shared Library'
-          ref: ${{ github.sha }}
-          intervalSeconds: 60
-          timeoutSeconds: 3600
-          workflow: build_windows.yml
-
-      - name: Download Artifacts From Linux Build
-        id: download-linux-artifact
-        uses: dawidd6/action-download-artifact@v6
-        with:
-            github_token: ${{secrets.GITHUB_TOKEN}}
-            workflow: build_linux.yml
-            workflow_conclusion: success
-            path: artifacts/linux
-            allow_forks: false
-            name: projectm-linux-shared-latest
-            workflow_search: true
-
-      - name: Create Linux Package
-        run: |
-          cd ${{ github.workspace }}/artifacts/linux
-          tar -czvf projectm-linux-x64.tar.gz *
-          mv projectm-linux-x64.tar.gz ${{ github.workspace }}/projectm-linux-x64-${{ env.TAG }}.tar.gz
 
       - name: Download Intel DMG From macOS Build
         id: download-osx-dmg-intel
@@ -106,45 +68,18 @@ jobs:
           mv ${{ github.workspace }}/artifacts/macos-intel/projectM-v4.1.4-macOS-Intel.dmg ${{ github.workspace }}/projectM-macOS-Intel-${{ env.TAG }}.dmg
           mv ${{ github.workspace }}/artifacts/macos-arm64/projectM-v4.1.4-macOS-AppleSilicon.dmg ${{ github.workspace }}/projectM-macOS-AppleSilicon-${{ env.TAG }}.dmg
 
-      - name: Download Windows Installer
-        id: download-windows-installer
-        uses: dawidd6/action-download-artifact@v6
-        with:
-          github_token: ${{secrets.GITHUB_TOKEN}}
-          workflow: build_windows.yml
-          workflow_conclusion: success
-          path: artifacts/windows-installer
-          allow_forks: false
-          name: projectm-windows-static-installer
-          workflow_search: true
-
-      - name: Create Windows Package
-        run: |
-          mv ${{ github.workspace }}/artifacts/windows-installer/projectM-*.exe ${{ github.workspace }}/projectm-windows-x64-installer-${{ env.TAG }}.exe
-
       - name: Display Ready Packages
         run: |
           ls -la ${{ github.workspace }}
-
-      # - name: Build Changelog
-      #   id: github_release
-      #   uses: mikepenz/release-changelog-builder-action@v3
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           name: ${{ env.TAG }}
           tag_name: ${{ env.TAG }}
-          # body: |
-          #   ${{steps.github_release.outputs.changelog}}
           draft: false
           prerelease: false
           fail_on_unmatched_files: true
           files: |
-            projectm-linux-x64-${{ env.TAG }}.tar.gz
             projectM-macOS-Intel-${{ env.TAG }}.dmg
             projectM-macOS-AppleSilicon-${{ env.TAG }}.dmg
-            projectm-windows-x64-installer-${{ env.TAG }}.exe
-            

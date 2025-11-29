@@ -59,9 +59,8 @@ This fork includes the following changes to improve cross-platform builds, distr
 
 Pre-built installers are available in the [Releases](https://github.com/sorenwacker/projectm-4.1.4/releases) section:
 
-- **Windows**: `.exe` NSIS installer with shortcuts
-- **macOS**: `.dmg` disk images for Intel and Apple Silicon
-- **Linux**: `.tar.gz` archive
+- **macOS Intel**: `.dmg` disk image for Intel Macs
+- **macOS Apple Silicon**: `.dmg` disk image for M1/M2/M3 Macs
 
 ## Audio Input Setup
 
