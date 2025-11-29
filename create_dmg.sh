@@ -81,9 +81,30 @@ if [ -f "FEATURES.md" ]; then
     cp FEATURES.md "${DMG_TEMP}/"
 fi
 
-# Create temporary DMG
+# Sync filesystem before creating DMG to avoid "Resource busy" errors
+echo "Syncing filesystem..."
+sync
+sleep 2
+
+# Create temporary DMG with retry logic
 echo "Creating temporary DMG..."
-hdiutil create -volname "${DMG_VOLUME_NAME}" -srcfolder "${DMG_TEMP}" -ov -format UDRW "${DMG_NAME%.dmg}-temp.dmg"
+DMG_CREATED=false
+for attempt in 1 2 3 4 5; do
+    echo "hdiutil create attempt $attempt..."
+    if hdiutil create -volname "${DMG_VOLUME_NAME}" -srcfolder "${DMG_TEMP}" -ov -format UDRW "${DMG_NAME%.dmg}-temp.dmg" 2>&1; then
+        echo "DMG created successfully on attempt $attempt"
+        DMG_CREATED=true
+        break
+    fi
+    echo "hdiutil create failed, waiting before retry..."
+    sync
+    sleep 3
+done
+
+if [ "$DMG_CREATED" = false ]; then
+    echo "Error: Failed to create DMG after 5 attempts"
+    exit 1
+fi
 
 # Mount the DMG
 echo "Mounting DMG for customization..."
