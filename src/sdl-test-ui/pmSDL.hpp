@@ -58,6 +58,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <map>
 #include <string>
 #include <sys/stat.h>
 
@@ -160,9 +161,6 @@ private:
     void scrollHandler(SDL_Event*);
     void keyHandler(SDL_Event*);
     void printKeyboardShortcuts();
-    void copyPresetToFavorites();
-    void movePresetToFavorites();
-    void movePresetFromFavorites();
     void toggleFavoritesMode();
     void movePresetToDeleted();
     void reloadPlaylist();
@@ -171,9 +169,8 @@ private:
     projectm_playlist_handle _playlist{nullptr};
 
     std::string _presetsBasePath; //!< Base path to presets directory
-    std::string _favoritesPath;   //!< Path to favorites subdirectory
     std::string _deletedPath;     //!< Path to deleted subdirectory
-    bool _favoritesOnlyMode{false}; //!< Whether to show only favorites
+    bool _favoritesOnlyMode{false}; //!< Whether to show only rating 9 presets
 
     SDL_Window* _sdlWindow{nullptr};
     bool _isFullScreen{false};
@@ -195,4 +192,24 @@ private:
 
     // Control window
     ControlWindow _controlWindow;
+
+    // Preset history for back/forward navigation
+    std::vector<uint32_t> _presetHistory;
+    int _historyIndex{-1};
+    static const size_t MAX_HISTORY_SIZE = 100;
+    bool _navigatingHistory{false}; //!< Flag to prevent adding to history during navigation
+
+    void addToHistory(uint32_t presetIndex);
+    void navigateHistoryBack();
+    void navigateHistoryForward();
+
+    // Rating system
+    std::map<std::string, int> _ratings; //!< Preset filename -> rating (1-9)
+    std::string _ratingsFilePath;        //!< Path to ratings storage file
+    void loadRatings();
+    void saveRatings();
+    void setPresetRating(int rating);
+    int getPresetRating(const std::string& presetPath);
+    void selectWeightedRandomPreset();
+    void addToFavorites();  //!< Sets rating to 9 (max)
 };

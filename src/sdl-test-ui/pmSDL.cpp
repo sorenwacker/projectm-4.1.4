@@ -31,10 +31,14 @@
 #include "pmSDL.hpp"
 
 #include <vector>
+#include <sstream>
+#include <cstdlib>
+#include <random>
 #ifndef _WIN32
 #include <unistd.h>
 #include <sys/select.h>
 #include <termios.h>
+#include <pwd.h>
 static struct termios orig_termios;
 #endif
 #include <fstream>
@@ -44,20 +48,42 @@ projectMSDL::projectMSDL(SDL_GLContext glCtx, const std::string& presetPath)
     , _projectM(projectm_create())
     , _playlist(projectm_playlist_create(_projectM))
     , _presetsBasePath(presetPath)
-    , _favoritesPath(presetPath + "/favorites")
     , _deletedPath(presetPath + "/deleted")
 {
     projectm_get_window_size(_projectM, &_width, &_height);
     projectm_playlist_set_preset_switched_event_callback(_playlist, &projectMSDL::presetSwitchedEvent, static_cast<void*>(this));
 
-    // Create favorites directory if it doesn't exist
+    // Create deleted directory if it doesn't exist
 #if defined _MSC_VER
-    _mkdir(_favoritesPath.c_str());
     _mkdir(_deletedPath.c_str());
 #else
-    mkdir(_favoritesPath.c_str(), 0755);
     mkdir(_deletedPath.c_str(), 0755);
 #endif
+
+    // Set up ratings file path (~/.projectM/ratings.txt)
+#ifdef _WIN32
+    char* appdata = getenv("APPDATA");
+    if (appdata) {
+        _ratingsFilePath = std::string(appdata) + "\\projectM\\ratings.txt";
+        _mkdir((std::string(appdata) + "\\projectM").c_str());
+    } else {
+        _ratingsFilePath = "ratings.txt";
+    }
+#else
+    const char* home = getenv("HOME");
+    if (!home) {
+        struct passwd* pw = getpwuid(getuid());
+        if (pw) home = pw->pw_dir;
+    }
+    if (home) {
+        std::string projectMDir = std::string(home) + "/.projectM";
+        mkdir(projectMDir.c_str(), 0755);
+        _ratingsFilePath = projectMDir + "/ratings.txt";
+    } else {
+        _ratingsFilePath = "ratings.txt";
+    }
+#endif
+    loadRatings();
 
     // Load presets based on current mode
     reloadPlaylist();
@@ -170,10 +196,8 @@ void projectMSDL::printKeyboardShortcuts()
     printf("  LEFT/RIGHT Arrow  - Navigate presets\n");
     printf("  R                 - Random preset\n");
     printf("  SPACE             - Lock/unlock preset\n");
-    printf("  Y                 - Toggle shuffle\n");
-    printf("  F                 - Move preset to/from favorites\n");
+    printf("  S                 - Toggle shuffle\n");
     printf("  T                 - Toggle favorites-only mode\n");
-    printf("  CMD+Delete        - Move preset to deleted folder\n");
     printf("  Mouse Scroll      - Change presets\n");
     printf("\nPreset Duration:\n");
     printf("  1-9               - Set duration (1=5s, 2=10s ... 9=120s)\n");
@@ -182,13 +206,13 @@ void projectMSDL::printKeyboardShortcuts()
     printf("  CMD+I             - Cycle audio input devices\n");
     printf("  CMD+UP/DOWN       - Adjust beat sensitivity\n");
     printf("\nDisplay:\n");
-    printf("  CMD+F             - Toggle fullscreen\n");
+    printf("  M                 - Toggle fullscreen\n");
     printf("  CMD+M             - Change monitor\n");
     printf("  CMD+S             - Stretch across monitors\n");
     printf("  A                 - Toggle aspect correction\n");
     printf("\nTime Control:\n");
     printf("  UP/DOWN Arrow     - Adjust time scale (0.01x - 2.0x, adaptive increments)\n");
-    printf("  S                 - Toggle slow motion (0.1x/1.0x)\n");
+    printf("  Y                 - Toggle slow motion (0.1x/1.0x)\n");
     printf("\nOther:\n");
     printf("  C                 - Open control window\n");
     printf("  H                 - Show this help\n");
@@ -227,35 +251,28 @@ void projectMSDL::printTerminalHelp()
     printf("========================================\n");
     printf("\nSingle-key commands (no ENTER needed):\n\n");
     printf("Preset Navigation:\n");
-    printf("  → or N           - Next preset\n");
-    printf("  ← or P           - Previous preset\n");
+    printf("  N or ->          - Next preset\n");
+    printf("  P or <-          - Previous preset\n");
     printf("  R                - Random preset\n");
+    printf("  B                - History back\n");
+    printf("  W                - History forward\n");
     printf("  L                - Lock/unlock current preset\n");
-    printf("  Y                - Toggle shuffle\n");
-    printf("\nPreset Duration (seconds per preset):\n");
-    printf("  1                - 5s (rapid browsing)\n");
-    printf("  2                - 10s (fast)\n");
-    printf("  3                - 15s\n");
-    printf("  4                - 20s\n");
-    printf("  5                - 30s (medium)\n");
-    printf("  6                - 45s\n");
-    printf("  7                - 60s (1 min)\n");
-    printf("  8                - 90s (1.5 min)\n");
-    printf("  9                - 120s (2 min, enjoy)\n");
-    printf("  0                - Toggle random mode (5-120s per preset)\n");
-    printf("\nFavorites & Organization:\n");
-    printf("  F                - Add/remove preset to favorites\n");
+    printf("  S                - Toggle shuffle\n");
+    printf("\nRating (1-9):\n");
+    printf("  1-9              - Set preset rating (higher = more likely)\n");
+    printf("  0                - Clear rating\n");
+    printf("\nFavorites:\n");
     printf("  T                - Toggle favorites-only mode\n");
-    printf("  D                - Move preset to deleted folder\n");
     printf("\nTime & Audio Control:\n");
-    printf("  ↑ or +           - Increase time scale\n");
-    printf("  ↓ or -           - Decrease time scale\n");
-    printf("  S                - Toggle slow motion (0.1x/1.0x)\n");
+    printf("  up/+             - Increase time scale\n");
+    printf("  down/-           - Decrease time scale\n");
+    printf("  Y                - Toggle slow motion (0.1x/1.0x)\n");
     printf("  ]                - Increase beat sensitivity\n");
     printf("  [                - Decrease beat sensitivity\n");
     printf("\nDisplay:\n");
     printf("  M                - Toggle fullscreen\n");
     printf("  A                - Toggle aspect correction\n");
+    printf("  C                - Open control window\n");
     printf("\nOther:\n");
     printf("  I                - Show current status\n");
     printf("  H or ?           - Show this help\n");
@@ -337,10 +354,7 @@ void projectMSDL::processTerminalCommand()
             break;
 
         case 'R':
-            projectm_playlist_set_shuffle(_playlist, true);
-            projectm_playlist_play_next(_playlist, true);
-            projectm_playlist_set_shuffle(_playlist, _shuffle);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[R] 🎲 Random preset");
+            selectWeightedRandomPreset();
             break;
 
         case 'L':
@@ -352,25 +366,26 @@ void projectMSDL::processTerminalCommand()
             }
             break;
 
-        case 'Y':
+        case 'S':
             _shuffle = !_shuffle;
             projectm_playlist_set_shuffle(_playlist, _shuffle);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[Y] 🔀 Shuffle: %s", _shuffle ? "ON" : "OFF");
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[S] Shuffle: %s", _shuffle ? "ON" : "OFF");
             break;
 
         case 'F':
-            if (_presetName.find("/favorites/") != std::string::npos)
-                movePresetFromFavorites();
-            else
-                movePresetToFavorites();
+            addToFavorites();
             break;
 
         case 'T':
             toggleFavoritesMode();
             break;
 
-        case 'D':
-            movePresetToDeleted();
+        case 'B':
+            navigateHistoryBack();
+            break;
+
+        case 'W':
+            navigateHistoryForward();
             break;
 
         case '+':
@@ -395,12 +410,12 @@ void projectMSDL::processTerminalCommand()
             }
             break;
 
-        case 'S':
+        case 'Y':
             {
                 float currentScale = projectm_get_time_scale(_projectM);
                 float newScale = (currentScale == 1.0f) ? 0.1f : 1.0f;
                 projectm_set_time_scale(_projectM, newScale);
-                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[S] 🐌 Slow Motion: %s (%.1fx)",
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[Y] Slow Motion: %s (%.1fx)",
                             newScale < 1.0f ? "ON" : "OFF", newScale);
             }
             break;
@@ -466,63 +481,34 @@ void projectMSDL::processTerminalCommand()
             break;
 
         case '1':
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 5.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[1] ⏱️  Preset Duration: 5 seconds (rapid)");
+            setPresetRating(1);
             break;
         case '2':
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 10.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[2] ⏱️  Preset Duration: 10 seconds (fast)");
+            setPresetRating(2);
             break;
         case '3':
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 15.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[3] ⏱️  Preset Duration: 15 seconds");
+            setPresetRating(3);
             break;
         case '4':
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 20.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[4] ⏱️  Preset Duration: 20 seconds");
+            setPresetRating(4);
             break;
         case '5':
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 30.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[5] ⏱️  Preset Duration: 30 seconds (medium)");
+            setPresetRating(5);
             break;
         case '6':
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 45.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[6] ⏱️  Preset Duration: 45 seconds");
+            setPresetRating(6);
             break;
         case '7':
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 60.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[7] ⏱️  Preset Duration: 60 seconds (1 min)");
+            setPresetRating(7);
             break;
         case '8':
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 90.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[8] ⏱️  Preset Duration: 90 seconds (1.5 min)");
+            setPresetRating(8);
             break;
         case '9':
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 120.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[9] ⏱️  Preset Duration: 120 seconds (2 min)");
+            setPresetRating(9);
             break;
         case '0':
-            {
-                // Toggle random duration mode
-                _randomDurationMode = !_randomDurationMode;
-                if (_randomDurationMode)
-                {
-                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[0] 🎲 Random Duration Mode: ON (each preset gets random duration 5-120s)");
-                }
-                else
-                {
-                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[0] ⏱️  Random Duration Mode: OFF");
-                }
-            }
+            setPresetRating(0); // Clear rating
             break;
 
         default:
@@ -537,13 +523,12 @@ void projectMSDL::reloadPlaylist()
     // Clear current playlist
     projectm_playlist_clear(_playlist);
 
-    // Load presets based on mode
-    const char* pathToLoad = _favoritesOnlyMode ? _favoritesPath.c_str() : _presetsBasePath.c_str();
-    projectm_playlist_add_path(_playlist, pathToLoad, true, false);
+    // Always load from the base path
+    projectm_playlist_add_path(_playlist, _presetsBasePath.c_str(), true, false);
 
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Loaded %d presets from %s",
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Loaded %d presets%s",
                 projectm_playlist_size(_playlist),
-                _favoritesOnlyMode ? "favorites" : "all presets");
+                _favoritesOnlyMode ? " (Favs mode: only rating 9 presets will play)" : "");
 }
 
 void projectMSDL::toggleFavoritesMode()
@@ -553,104 +538,16 @@ void projectMSDL::toggleFavoritesMode()
 
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Favorites-Only Mode: %s", _favoritesOnlyMode ? "ON" : "OFF");
     UpdateWindowTitle();
-}
 
-void projectMSDL::movePresetToFavorites()
-{
-    if (_presetName.empty())
+    // If we just enabled favorites mode and current preset isn't a favorite,
+    // immediately switch to a random favorite
+    if (_favoritesOnlyMode)
     {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "No preset currently loaded");
-        return;
-    }
-
-    // Check if preset is already in favorites
-    if (_presetName.find("/favorites/") != std::string::npos)
-    {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "⭐ Already in favorites");
-        return;
-    }
-
-    // Get just the filename from the full path
-    size_t lastSlash = _presetName.find_last_of("/\\");
-    std::string filename = (lastSlash != std::string::npos) ? _presetName.substr(lastSlash + 1) : _presetName;
-
-    // Build destination path
-    std::string destPath = _favoritesPath + "/" + filename;
-
-    // Check if source file exists
-    std::ifstream srcFile(_presetName);
-    if (!srcFile.good())
-    {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Preset file not found (may have been moved): %s", filename.c_str());
-        return;
-    }
-    srcFile.close();
-
-    // Move file using system command (cross-platform)
-#ifdef _WIN32
-    std::string command = "move \"" + _presetName + "\" \"" + destPath + "\"";
-#else
-    std::string command = "mv \"" + _presetName + "\" \"" + destPath + "\"";
-#endif
-
-    int result = system(command.c_str());
-
-    if (result == 0)
-    {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "⭐ Added to favorites: %s", filename.c_str());
-        // Update the preset name to reflect new location
-        _presetName = destPath;
-        // Reload playlist to reflect changes
-        reloadPlaylist();
-    }
-    else
-    {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to move preset to favorites (file may not exist)");
-    }
-}
-
-void projectMSDL::movePresetFromFavorites()
-{
-    if (_presetName.empty())
-    {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "No preset currently loaded");
-        return;
-    }
-
-    // Check if preset is in favorites
-    if (_presetName.find("/favorites/") == std::string::npos)
-    {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Not in favorites");
-        return;
-    }
-
-    // Get just the filename from the full path
-    size_t lastSlash = _presetName.find_last_of("/\\");
-    std::string filename = (lastSlash != std::string::npos) ? _presetName.substr(lastSlash + 1) : _presetName;
-
-    // Build destination path (back to main presets folder)
-    std::string destPath = _presetsBasePath + "/" + filename;
-
-    // Move file using system command (cross-platform)
-#ifdef _WIN32
-    std::string command = "move \"" + _presetName + "\" \"" + destPath + "\"";
-#else
-    std::string command = "mv \"" + _presetName + "\" \"" + destPath + "\"";
-#endif
-
-    int result = system(command.c_str());
-
-    if (result == 0)
-    {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "☆ Removed from favorites: %s", filename.c_str());
-        // Update the preset name to reflect new location
-        _presetName = destPath;
-        // Reload playlist to reflect changes
-        reloadPlaylist();
-    }
-    else
-    {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to move preset from favorites");
+        int currentRating = getPresetRating(_presetName);
+        if (currentRating != 9)
+        {
+            selectWeightedRandomPreset();
+        }
     }
 }
 
@@ -697,12 +594,6 @@ void projectMSDL::movePresetToDeleted()
     {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to move preset to deleted");
     }
-}
-
-void projectMSDL::copyPresetToFavorites()
-{
-    // Kept for backward compatibility, but now just calls movePresetToFavorites
-    movePresetToFavorites();
 }
 
 void projectMSDL::scrollHandler(SDL_Event* sdl_evt)
@@ -796,7 +687,16 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
             }
             else
             {
-                // s without modifier: slow motion toggle
+                // s without modifier: shuffle toggle
+                _shuffle = !_shuffle;
+                projectm_playlist_set_shuffle(_playlist, _shuffle);
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Shuffle: %s", _shuffle ? "ON" : "OFF");
+            }
+            break;
+
+        case SDLK_y:
+            {
+                // y: slow motion toggle
                 float currentScale = projectm_get_time_scale(_projectM);
                 float newScale = (currentScale == 1.0f) ? 0.1f : 1.0f;
                 projectm_set_time_scale(_projectM, newScale);
@@ -817,30 +717,13 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
                 this->stretch = false; // if we are switching monitors, ensure we disable monitor stretching.
                 return;                // handled
             }
-
-        case SDLK_f:
-            if (sdl_mod & KMOD_LGUI || sdl_mod & KMOD_RGUI || sdl_mod & KMOD_LCTRL)
+            else
             {
-                // command-f: fullscreen
-                // Stereo requires fullscreen
+                // m without modifier: toggle fullscreen
 #if !STEREOSCOPIC_SBS
                 toggleFullScreen();
                 SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Fullscreen: %s", _isFullScreen ? "ON" : "OFF");
 #endif
-                this->stretch = false; // if we are toggling fullscreen, ensure we disable monitor stretching.
-                return;                // handled
-            }
-            else
-            {
-                // f without modifier: move preset to/from favorites
-                if (_presetName.find("/favorites/") != std::string::npos)
-                {
-                    movePresetFromFavorites();
-                }
-                else
-                {
-                    movePresetToFavorites();
-                }
             }
             break;
 
@@ -850,27 +733,24 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
             break;
 
         case SDLK_r:
-            // Use playlist shuffle to randomize.
-            projectm_playlist_set_shuffle(_playlist, true);
-            projectm_playlist_play_next(_playlist, true);
-            projectm_playlist_set_shuffle(_playlist, _shuffle);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Random preset selected");
+            // Use weighted random selection based on ratings
+            selectWeightedRandomPreset();
             break;
 
-        case SDLK_y:
-            _shuffle = !_shuffle;
-            projectm_playlist_set_shuffle(_playlist, _shuffle);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Shuffle: %s", _shuffle ? "ON" : "OFF");
+        case SDLK_b:
+            navigateHistoryBack();
+            break;
+
+        case SDLK_w:
+            navigateHistoryForward();
             break;
 
         case SDLK_LEFT:
-            projectm_playlist_play_previous(_playlist, true);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Previous preset");
+            navigateHistoryBack();
             break;
 
         case SDLK_RIGHT:
-            projectm_playlist_play_next(_playlist, true);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Next preset");
+            navigateHistoryForward();
             break;
 
         case SDLK_UP:
@@ -924,74 +804,36 @@ void projectMSDL::keyHandler(SDL_Event* sdl_evt)
             }
             break;
 
-        case SDLK_DELETE:
-        case SDLK_BACKSPACE:
-            if (sdl_mod & KMOD_LGUI || sdl_mod & KMOD_RGUI || sdl_mod & KMOD_LCTRL)
-            {
-                // CMD+Delete: move preset to deleted folder
-                movePresetToDeleted();
-            }
-            break;
-
-        // Preset duration controls (number keys 0-9)
+        // Rating controls (number keys 1-9, 0 to clear)
         case SDLK_1:
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 5.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 5 seconds (rapid)");
+            setPresetRating(1);
             break;
         case SDLK_2:
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 10.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 10 seconds (fast)");
+            setPresetRating(2);
             break;
         case SDLK_3:
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 15.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 15 seconds");
+            setPresetRating(3);
             break;
         case SDLK_4:
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 20.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 20 seconds");
+            setPresetRating(4);
             break;
         case SDLK_5:
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 30.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 30 seconds (medium)");
+            setPresetRating(5);
             break;
         case SDLK_6:
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 45.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 45 seconds");
+            setPresetRating(6);
             break;
         case SDLK_7:
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 60.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 60 seconds (1 min)");
+            setPresetRating(7);
             break;
         case SDLK_8:
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 90.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 90 seconds (1.5 min)");
+            setPresetRating(8);
             break;
         case SDLK_9:
-            _randomDurationMode = false;
-            projectm_set_preset_duration(_projectM, 120.0);
-            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset Duration: 120 seconds (2 min)");
+            setPresetRating(9);
             break;
         case SDLK_0:
-            {
-                // Toggle random duration mode
-                _randomDurationMode = !_randomDurationMode;
-                if (_randomDurationMode)
-                {
-                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Random Duration Mode: ON (each preset gets random 5-120s)");
-                }
-                else
-                {
-                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Random Duration Mode: OFF");
-                }
-            }
+            setPresetRating(0); // Clear rating
             break;
 
     }
@@ -1214,20 +1056,93 @@ void projectMSDL::presetSwitchedEvent(bool isHardCut, unsigned int index, void* 
 {
     auto app = reinterpret_cast<projectMSDL*>(context);
     auto presetName = projectm_playlist_item(app->_playlist, index);
+
+    // In favorites mode, check if this preset is a favorite (rating 9)
+    // If not, immediately switch to a random favorite instead
+    if (app->_favoritesOnlyMode && !app->_navigatingHistory)
+    {
+        int rating = app->getPresetRating(presetName);
+        if (rating != 9)
+        {
+            projectm_playlist_free_string(presetName);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Preset not a favorite (rating %d), switching to random favorite", rating);
+            app->selectWeightedRandomPreset();
+            return;  // selectWeightedRandomPreset will trigger another callback
+        }
+    }
+
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Displaying preset: %s\n", presetName);
 
     app->_presetName = presetName;
     projectm_playlist_free_string(presetName);
+
+    // Add to history if not navigating through history
+    if (!app->_navigatingHistory)
+    {
+        app->addToHistory(index);
+    }
+    app->_navigatingHistory = false;
 
     // Apply random duration if random mode is enabled
     if (app->_randomDurationMode)
     {
         double randomDuration = 5.0 + (rand() % 116);  // 5-120 seconds
         projectm_set_preset_duration(app->_projectM, randomDuration);
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "🎲 Random Duration: %.0f seconds", randomDuration);
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Random Duration: %.0f seconds", randomDuration);
     }
 
     app->UpdateWindowTitle();
+}
+
+void projectMSDL::addToHistory(uint32_t presetIndex)
+{
+    // If we're not at the end of history, truncate future entries
+    if (_historyIndex >= 0 && _historyIndex < (int)_presetHistory.size() - 1)
+    {
+        _presetHistory.resize(_historyIndex + 1);
+    }
+
+    // Add new entry
+    _presetHistory.push_back(presetIndex);
+
+    // Limit history size
+    if (_presetHistory.size() > MAX_HISTORY_SIZE)
+    {
+        _presetHistory.erase(_presetHistory.begin());
+    }
+
+    _historyIndex = (int)_presetHistory.size() - 1;
+}
+
+void projectMSDL::navigateHistoryBack()
+{
+    if (_historyIndex > 0)
+    {
+        _historyIndex--;
+        _navigatingHistory = true;
+        projectm_playlist_set_position(_playlist, _presetHistory[_historyIndex], true);
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "History back (%d/%d)", _historyIndex + 1, (int)_presetHistory.size());
+    }
+    else
+    {
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "At beginning of history");
+    }
+}
+
+void projectMSDL::navigateHistoryForward()
+{
+    if (_historyIndex < (int)_presetHistory.size() - 1)
+    {
+        _historyIndex++;
+        _navigatingHistory = true;
+        projectm_playlist_set_position(_playlist, _presetHistory[_historyIndex], true);
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "History forward (%d/%d)", _historyIndex + 1, (int)_presetHistory.size());
+    }
+    else
+    {
+        // At end of history, go to next preset in playlist
+        projectm_playlist_play_next(_playlist, true);
+    }
 }
 
 projectm_handle projectMSDL::projectM()
@@ -1284,9 +1199,7 @@ void projectMSDL::openControlWindow()
     };
 
     _controlWindow.onRandom = [this]() {
-        projectm_playlist_set_shuffle(_playlist, true);
-        projectm_playlist_play_next(_playlist, true);
-        projectm_playlist_set_shuffle(_playlist, _shuffle);
+        selectWeightedRandomPreset();
     };
 
     _controlWindow.onToggleShuffle = [this]() {
@@ -1303,10 +1216,7 @@ void projectMSDL::openControlWindow()
     };
 
     _controlWindow.onAddFavorite = [this]() {
-        if (_presetName.find("/favorites/") != std::string::npos)
-            movePresetFromFavorites();
-        else
-            movePresetToFavorites();
+        addToFavorites();
     };
 
     _controlWindow.onToggleFavorites = [this]() {
@@ -1321,6 +1231,40 @@ void projectMSDL::openControlWindow()
     _controlWindow.onSetDuration = [this](double duration) {
         _randomDurationMode = false;
         projectm_set_preset_duration(_projectM, duration);
+    };
+
+    _controlWindow.onHistoryBack = [this]() {
+        navigateHistoryBack();
+    };
+
+    _controlWindow.onHistoryForward = [this]() {
+        navigateHistoryForward();
+    };
+
+    _controlWindow.onDelete = [this]() {
+        movePresetToDeleted();
+    };
+
+    _controlWindow.onSetSpeed = [this](float speed) {
+        projectm_set_time_scale(_projectM, speed);
+    };
+
+    _controlWindow.onSetBeatSensitivity = [this](float sensitivity) {
+        projectm_set_beat_sensitivity(_projectM, sensitivity);
+    };
+
+    _controlWindow.onSetRating = [this](int rating) {
+        setPresetRating(rating);
+    };
+
+    _controlWindow.onToggleRandomDuration = [this]() {
+        _randomDurationMode = !_randomDurationMode;
+        _controlWindow.setRandomDurationMode(_randomDurationMode);
+        if (_randomDurationMode) {
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Random Duration Mode: ON");
+        } else {
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Random Duration Mode: OFF");
+        }
     };
 
     // Initial state
@@ -1340,6 +1284,11 @@ void projectMSDL::updateControlWindow()
         projectm_playlist_get_position(_playlist),
         projectm_playlist_size(_playlist)
     );
+    _controlWindow.setHistoryPosition(_historyIndex + 1, (int)_presetHistory.size());
+    _controlWindow.setRating(getPresetRating(_presetName));
+    _controlWindow.setSpeed(projectm_get_time_scale(_projectM));
+    _controlWindow.setBeatSensitivity(projectm_get_beat_sensitivity(_projectM));
+    _controlWindow.setRandomDurationMode(_randomDurationMode);
 }
 
 void projectMSDL::renderControlWindow()
@@ -1348,4 +1297,140 @@ void projectMSDL::renderControlWindow()
 
     updateControlWindow();
     _controlWindow.render();
+}
+
+void projectMSDL::loadRatings()
+{
+    _ratings.clear();
+    std::ifstream file(_ratingsFilePath);
+    if (!file.is_open()) {
+        return;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        // Format: rating|filename
+        size_t sep = line.find('|');
+        if (sep != std::string::npos && sep > 0) {
+            int rating = std::stoi(line.substr(0, sep));
+            std::string filename = line.substr(sep + 1);
+            if (rating >= 1 && rating <= 9) {
+                _ratings[filename] = rating;
+            }
+        }
+    }
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Loaded %zu preset ratings", _ratings.size());
+}
+
+void projectMSDL::saveRatings()
+{
+    std::ofstream file(_ratingsFilePath);
+    if (!file.is_open()) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to save ratings to %s", _ratingsFilePath.c_str());
+        return;
+    }
+
+    for (const auto& pair : _ratings) {
+        file << pair.second << "|" << pair.first << "\n";
+    }
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Saved %zu preset ratings", _ratings.size());
+}
+
+void projectMSDL::setPresetRating(int rating)
+{
+    if (_presetName.empty()) {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "No preset loaded to rate");
+        return;
+    }
+
+    // Extract just the filename from the full path
+    size_t lastSlash = _presetName.find_last_of("/\\");
+    std::string filename = (lastSlash != std::string::npos) ? _presetName.substr(lastSlash + 1) : _presetName;
+
+    if (rating == 0) {
+        // Remove rating
+        _ratings.erase(filename);
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Cleared rating for: %s", filename.c_str());
+    } else if (rating >= 1 && rating <= 9) {
+        _ratings[filename] = rating;
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Set rating %d for: %s", rating, filename.c_str());
+    }
+
+    saveRatings();
+    _controlWindow.setRating(rating);
+}
+
+int projectMSDL::getPresetRating(const std::string& presetPath)
+{
+    // Extract just the filename from the full path
+    size_t lastSlash = presetPath.find_last_of("/\\");
+    std::string filename = (lastSlash != std::string::npos) ? presetPath.substr(lastSlash + 1) : presetPath;
+
+    auto it = _ratings.find(filename);
+    if (it != _ratings.end()) {
+        return it->second;
+    }
+    return 5; // Default rating (unrated presets get middle rating)
+}
+
+void projectMSDL::selectWeightedRandomPreset()
+{
+    uint32_t playlistSize = projectm_playlist_size(_playlist);
+    if (playlistSize == 0) return;
+
+    // Build weighted list
+    // In Favs mode: only include presets with rating 9
+    // Otherwise: use rating as weight (default 5 for unrated)
+    std::vector<std::pair<uint32_t, int>> weightedPresets;
+    int totalWeight = 0;
+
+    for (uint32_t i = 0; i < playlistSize; i++) {
+        auto presetPath = projectm_playlist_item(_playlist, i);
+        int rating = getPresetRating(presetPath);
+        projectm_playlist_free_string(presetPath);
+
+        if (_favoritesOnlyMode) {
+            // In Favs mode, only include favorites (rating 9)
+            if (rating == 9) {
+                weightedPresets.push_back({i, 1});  // Equal weight for all favs
+                totalWeight += 1;
+            }
+        } else {
+            // Weight is the rating (1-9, default 5)
+            weightedPresets.push_back({i, rating});
+            totalWeight += rating;
+        }
+    }
+
+    if (totalWeight == 0) {
+        if (_favoritesOnlyMode) {
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "No favorites found (no presets with rating 9)");
+        }
+        return;
+    }
+
+    // Random selection based on weights
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(1, totalWeight);
+    int randomValue = dis(gen);
+
+    int cumulative = 0;
+    for (const auto& preset : weightedPresets) {
+        cumulative += preset.second;
+        if (randomValue <= cumulative) {
+            _navigatingHistory = false;
+            projectm_playlist_set_position(_playlist, preset.first, true);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Weighted random selected preset %d%s",
+                        preset.first, _favoritesOnlyMode ? " (favorite)" : "");
+            return;
+        }
+    }
+}
+
+void projectMSDL::addToFavorites()
+{
+    // Adding to favorites just sets rating to 9 (max)
+    setPresetRating(9);
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Added to favorites (rating 9)");
 }
